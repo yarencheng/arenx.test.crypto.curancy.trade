@@ -1,23 +1,24 @@
 package arenx.test.crypto.curancy.trade;
 
-import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
 @Component
-public class PoloniexExchange implements TickerProviderInterface {
+@Scope("singleton")
+public class PoloniexExchange extends BaseExchange {
 
 	private static Logger logger = LoggerFactory.getLogger(PoloniexExchange.class);
 
@@ -26,27 +27,14 @@ public class PoloniexExchange implements TickerProviderInterface {
 
 	private RestOperations rest = new RestTemplate();
 	private ScheduledExecutorService ex = new ScheduledThreadPoolExecutor(1);
-	private Map<Currency, Map<Currency, TickerListenerInterface>> tickerUpdaters = Collections.synchronizedMap(new HashMap<>());
 
-	public void start() {
+	@PostConstruct
+	private void postConstruct() {
 		ex.scheduleAtFixedRate(this::updateTickers, 0, queryInterval, TimeUnit.MILLISECONDS);
 	}
-
-	@Override
-	public void addUpdateListener(Currency from, Currency to, TickerListenerInterface listener) {
-
-		Map<Currency, TickerListenerInterface> m = tickerUpdaters.get(from);
-
-		if (m == null) {
-			m = Collections.synchronizedMap(new HashMap<>());
-			tickerUpdaters.put(from, m);
-		}
-
-		if (m.containsKey(to)) {
-			logger.warn("ticker listener of [{} - {}] is replaced", from, to);
-		}
-
-		m.put(to, listener);
+	
+	public String getName(){
+		return "Poloniex";
 	}
 
 	private void updateTickers() {
@@ -69,21 +57,13 @@ public class PoloniexExchange implements TickerProviderInterface {
 				}
 				
 				Ticker toTicker = new Ticker();
-				toTicker.setFrom(curs[1]);
-				toTicker.setTo(curs[0]);
+				toTicker.setFromCurrency(curs[1]);
+				toTicker.setToCurrency(curs[0]);
 				toTicker.setHighestBid(Double.parseDouble((String) a.getValue().get("highestBid")));
 				toTicker.setLowestAsk(Double.parseDouble((String) a.getValue().get("lowestAsk")));
 				toTicker.setLast(Double.parseDouble((String) a.getValue().get("last")));
 				
-				Ticker fromTicker = toTicker.reverse();
-				
-				if (tickerUpdaters.containsKey(curs[0]) && tickerUpdaters.get(curs[0]).containsKey(curs[1])) {
-					tickerUpdaters.get(curs[0]).get(curs[1]).onUpdate(fromTicker);;
-				}
-				
-				if (tickerUpdaters.containsKey(curs[1]) && tickerUpdaters.get(curs[1]).containsKey(curs[0])) {
-					tickerUpdaters.get(curs[1]).get(curs[0]).onUpdate(toTicker);;
-				}
+				super.update(toTicker);
 			});
 
 	}

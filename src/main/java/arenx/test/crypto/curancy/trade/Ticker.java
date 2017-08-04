@@ -1,16 +1,16 @@
 package arenx.test.crypto.curancy.trade;
 
 public class Ticker {
-	private Currency from;
-	private Currency to;
+	private Currency fromCurrency;
+	private Currency toCurrency;
 	private double last;
 	private double lowestAsk;		
 	private double highestBid;
 	
 	public Ticker reverse(){
 		Ticker ticker = new Ticker();
-		ticker.setFrom(to);
-		ticker.setTo(from);
+		ticker.setFromCurrency(toCurrency);
+		ticker.setToCurrency(fromCurrency);
 		ticker.setHighestBid(1 / lowestAsk);
 		ticker.setLowestAsk(1.0 / highestBid);
 		ticker.setLast(1 / last);
@@ -20,20 +20,20 @@ public class Ticker {
 	
 	@Override
 	public String toString() {
-		return "Ticker [from=" + from + ", to=" + to + ", last=" + last + ", lowestAsk=" + lowestAsk + ", highestBid=" + highestBid + "]";
+		return "Ticker [Currency=" + fromCurrency + ", toCurrency=" + toCurrency + ", last=" + last + ", lowestAsk=" + lowestAsk + ", highestBid=" + highestBid + "]";
 	}
 
-	public Currency getFrom() {
-		return from;
+	public Currency getFromCurrency() {
+		return fromCurrency;
 	}
-	public void setFrom(Currency from) {
-		this.from = from;
+	public void setFromCurrency(Currency from) {
+		this.fromCurrency = from;
 	}
-	public Currency getTo() {
-		return to;
+	public Currency getToCurrency() {
+		return toCurrency;
 	}
-	public void setTo(Currency to) {
-		this.to = to;
+	public void setToCurrency(Currency to) {
+		this.toCurrency = to;
 	}	
 	public double getLast() {
 		return last;
