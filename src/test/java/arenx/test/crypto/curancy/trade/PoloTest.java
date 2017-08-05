@@ -272,7 +272,13 @@ public class PoloTest {
 					logger.info("afterConnectionEstablished() arg0={}", arg0);
 
 //					arg0.sendMessage(new TextMessage("{ \"event\":\"ping\"}"));
-					arg0.sendMessage(new TextMessage("{\"event\": \"subscribe\", \"channel\": \"book\", \"symbol\": \"tZECBTC\", \"prec\": \"P0\",  \"freq\": \"F0\",  \"len\": 25 }"));
+					arg0.sendMessage(new TextMessage("{\"event\": \"subscribe\", \"channel\": \"book\", \"symbol\": \"tETHBTC\", \"prec\": \"P0\",  \"freq\": \"F0\",  \"len\": 25 }"));
+
+//					Thread.sleep(5);
+//					arg0.sendMessage(new TextMessage("{\"event\": \"subscribe\", \"channel\": \"book\", \"symbol\": \"tZECBTC\", \"prec\": \"P0\",  \"freq\": \"F0\",  \"len\": 25 }"));
+
+
+
 				}
 
 				boolean isSub = false;

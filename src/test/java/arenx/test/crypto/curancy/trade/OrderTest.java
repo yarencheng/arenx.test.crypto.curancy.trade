@@ -23,12 +23,20 @@ public class OrderTest {
 	@Test
 	public void sss(){
 
-		Order o = new Order();
+		try{
+			Order o = new Order();
 
-		o.setExchange("ssss");
+			o.setExchange("ssss");
+			o.setFromCurrency(Currency.BITCOIN);
+			o.setToCurrency(Currency.BITCOIN);
+			o.setPrice(123.0);
+			o.setType(Order.Type.ASK);
+			o.setVolume(23.0);
 
-		pm.makePersistent(o);
+			pm.makePersistent(o);
+		} finally {
+			pm.close();
+		}
 
-		pm.close();
 	}
 }
