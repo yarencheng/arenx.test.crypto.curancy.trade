@@ -248,11 +248,8 @@
 				<artifactId>antlr4-maven-plugin</artifactId>
 				<version>${antlr4.version}</version>
 				<configuration>
-					<outputDirectory>src/main/antlr4-generated</outputDirectory>
-					<arguments>
-						<argument>-package</argument>
-						<argument>arenx.test.crypto.curancy.trade.antlr4</argument>				
-					</arguments>
+					<outputDirectory>src/main/antlr4-generated/arenx/test/crypto/curancy/trade/antlr4</outputDirectory>
+					
 				</configuration>
 				<executions>
 					<execution>

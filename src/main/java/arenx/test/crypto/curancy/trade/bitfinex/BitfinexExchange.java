@@ -58,7 +58,51 @@ public class BitfinexExchange extends BaseExchange {
 
 	private WebSocketConnectionManager wsm;
 	private ObjectMapper mapper = new ObjectMapper();
-	private LinkedList<WebSocketBean> unhandledBeans = new LinkedList<>();
+	private LinkedList<WebSocketBean> unhandledWsBeans = new LinkedList<>();
+
+	private LinkedList<ChannelBean> unhandledChBeans = new LinkedList<>();
+
+	Thread wsThread = new Thread(()->{
+        while (true) {
+            WebSocketBean bean;
+
+            synchronized (unhandledWsBeans) {
+                if (unhandledWsBeans.isEmpty()) {
+                    try {
+                        unhandledWsBeans.wait(100);
+                    } catch (InterruptedException e) {
+                        logger.error("interrupted", e);
+                    }
+                    continue;
+                }
+
+                bean = unhandledWsBeans.pollFirst();
+            }
+
+            handle(bean);
+        }
+    }, "bitfinex@WsBeanConsumer");
+
+	Thread chThread = new Thread(()->{
+        while (true) {
+            ChannelBean bean;
+
+            synchronized (unhandledChBeans) {
+                if (unhandledChBeans.isEmpty()) {
+                    try {
+                        unhandledChBeans.wait(100);
+                    } catch (InterruptedException e) {
+                        logger.error("interrupted", e);
+                    }
+                    continue;
+                }
+
+                bean = unhandledChBeans.pollFirst();
+            }
+
+            handle(bean);
+        }
+    }, "bitfinex@ChBeanConsumer");
 
 	private RestOperations rest = new RestTemplate();
 	private ScheduledExecutorService ex = new ScheduledThreadPoolExecutor(1);
@@ -71,28 +115,32 @@ public class BitfinexExchange extends BaseExchange {
 		wsm = createWebSocket();
 		wsm.start();
 
-		Thread t = new Thread(()->{
+		Thread wsThread = new Thread(()->{
 		    while (true) {
 		        WebSocketBean bean;
 
-		        synchronized (unhandledBeans) {
-		            if (unhandledBeans.isEmpty()) {
+		        synchronized (unhandledWsBeans) {
+		            if (unhandledWsBeans.isEmpty()) {
 	                    try {
-	                        unhandledBeans.wait(100);
+	                        unhandledWsBeans.wait(100);
 	                    } catch (InterruptedException e) {
 	                        logger.error("interrupted", e);
 	                    }
 	                    continue;
 	                }
 
-		            bean = unhandledBeans.pollFirst();
+		            bean = unhandledWsBeans.pollFirst();
                 }
 
                 handle(bean);
 		    }
-		});
-		logger.info("thread [{}] is starting", t.getName());
-		t.start();
+		}, "bitfinex@webSocketComsum");
+
+		logger.info("thread [{}] is starting", wsThread.getName());
+		wsThread.start();
+
+		logger.info("thread [{}] is starting", chThread.getName());
+		chThread.start();
 	}
 
 	@Override
@@ -121,7 +169,6 @@ public class BitfinexExchange extends BaseExchange {
 					@Override
 					public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
 						logger.debug("recieve message [{}]", message.getPayload());
-						logger.error("recieve message [{}]", message.getPayload());
 
 						if (!(message instanceof TextMessage)) {
 						    logger.error("an unreconized message [{}]", message);
@@ -130,17 +177,21 @@ public class BitfinexExchange extends BaseExchange {
 
 						TextMessage t = (TextMessage)message;
 
-						WebSocketBean bean = mapper.readValue(t.getPayload(), WebSocketBean.class);
+						try {
+                            ChannelBean ch = ChannelBean.parse(t.getPayload());
 
-						synchronized (unhandledBeans) {
-						    unhandledBeans.add(bean);
-	                        unhandledBeans.notify();
+                            synchronized (unhandledChBeans) {
+                                unhandledChBeans.add(ch);
+                                unhandledChBeans.notify();
+                            }
+                        } catch (IllegalArgumentException e) {
+                            WebSocketBean wsbean = mapper.readValue(t.getPayload(), WebSocketBean.class);
+
+                            synchronized (unhandledWsBeans) {
+                                unhandledWsBeans.add(wsbean);
+                                unhandledWsBeans.notify();
+                            }
                         }
-
-//						   expp
-
-//						ExpLexer e;
-
 					}
 
 					@Override
@@ -190,6 +241,11 @@ public class BitfinexExchange extends BaseExchange {
                 }
             })
             ;
+    }
+
+    private void handle(ChannelBean bean){
+
+        logger.error("bean [{}]", bean);
     }
 
     private void handle(WebSocketBean bean){
