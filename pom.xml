@@ -11,6 +11,7 @@
 		<jawampa.version>0.5.0</jawampa.version>
 		<spring.version>4.3.10.RELEASE</spring.version>
 		<datanucleus.version>5.1.0-release</datanucleus.version>
+		<antlr4.version>4.7</antlr4.version>
 	</properties>
 
 	<dependencies>
@@ -53,6 +54,12 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>22.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.antlr</groupId>
+			<artifactId>antlr4-runtime</artifactId>
+			<version>${antlr4.version}</version>
 		</dependency>
 
 		<dependency>
@@ -147,6 +154,25 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<id>add-source</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>src/main/antlr4-generated</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.6.1</version>
@@ -220,7 +246,14 @@
 			<plugin>
 				<groupId>org.antlr</groupId>
 				<artifactId>antlr4-maven-plugin</artifactId>
-				<version>4.7</version>
+				<version>${antlr4.version}</version>
+				<configuration>
+					<outputDirectory>src/main/antlr4-generated</outputDirectory>
+					<arguments>
+						<argument>-package</argument>
+						<argument>arenx.test.crypto.curancy.trade.antlr4</argument>				
+					</arguments>
+				</configuration>
 				<executions>
 					<execution>
 						<id>antlr</id>

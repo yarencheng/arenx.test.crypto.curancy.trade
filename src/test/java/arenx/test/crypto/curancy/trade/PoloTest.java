@@ -6,6 +6,9 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CodePointCharStream;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
@@ -326,6 +329,18 @@ public class PoloTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	@Test
+	public void adasssd(){
+	    arenx.test.crypto.curancy.trade.antlr4.ExpLexer eee;
+
+	    CodePointCharStream antlrInputStream = CharStreams.fromString("hello world");
+//	    ANTLRStringStream in = new ANTLRStringStream("12*(5-6)");
+//        ExpLexer lexer = new ExpLexer(antlrInputStream);
+//        CommonTokenStream tokens = new CommonTokenStream(lexer);
+//        ExpParser parser = new ExpParser(tokens);
+//        parser.eval();
 	}
 
 }
