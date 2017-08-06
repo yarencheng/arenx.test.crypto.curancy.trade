@@ -17,6 +17,15 @@ public class ChannelBeanParseTest {
         return Arrays.asList(
             new Object[]{
                     true,
+                    "[123,\"hb\"]",
+                    new ChannelBean(
+                            123,
+                            ChannelBean.Type.HEART_BEAT,
+                            null
+                    )
+            },
+            new Object[]{
+                    true,
                     "[123,[123]]",
                     new ChannelBean(
                             123,

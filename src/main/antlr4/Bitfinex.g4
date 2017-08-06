@@ -16,7 +16,9 @@ channel returns [ChannelBean bean]
 	:	'['
 		id					{ $bean.id = Integer.parseInt($id.text); }
 		','
-		records				{ $bean.data = $records.values; $bean.type = ChannelBean.Type.DATA; }
+		(	records			{ $bean.data = $records.values; $bean.type = ChannelBean.Type.DATA; }
+		|	HeartBeat		{ $bean.type = ChannelBean.Type.HEART_BEAT; }
+		)
 		']'
 		EOF
 	;
@@ -58,3 +60,4 @@ Sign			: '-' | '+' ;
 Decimal         : '0' | '1'..'9' (DecimalDigit)* ;
 DecimalDigit	: '0'..'9' ;
 WS  			: [ \t\r\n]+ -> skip ;
+HeartBeat		: '"hb"' ;
