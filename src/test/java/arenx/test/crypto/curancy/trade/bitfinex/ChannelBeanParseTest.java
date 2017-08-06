@@ -20,6 +20,7 @@ public class ChannelBeanParseTest {
                     "[123,[123]]",
                     new ChannelBean(
                             123,
+                            ChannelBean.Type.DATA,
                             Arrays.asList(
                                     Arrays.asList(123.0)
                             )
@@ -30,6 +31,7 @@ public class ChannelBeanParseTest {
                     "[123,[-123]]",
                     new ChannelBean(
                             123,
+                            ChannelBean.Type.DATA,
                             Arrays.asList(
                                     Arrays.asList(-123.0)
                             )
@@ -40,6 +42,7 @@ public class ChannelBeanParseTest {
                     "[123,[+123]]",
                     new ChannelBean(
                             123,
+                            ChannelBean.Type.DATA,
                             Arrays.asList(
                                     Arrays.asList(123.0)
                             )
@@ -50,6 +53,7 @@ public class ChannelBeanParseTest {
                     "[123,[0]]",
                     new ChannelBean(
                             123,
+                            ChannelBean.Type.DATA,
                             Arrays.asList(
                                     Arrays.asList(0.0)
                             )
@@ -60,6 +64,7 @@ public class ChannelBeanParseTest {
                     "[123,[123.123]]",
                     new ChannelBean(
                             123,
+                            ChannelBean.Type.DATA,
                             Arrays.asList(
                                     Arrays.asList(123.123)
                             )
@@ -70,6 +75,7 @@ public class ChannelBeanParseTest {
                     "[123,[0.123]]",
                     new ChannelBean(
                             123,
+                            ChannelBean.Type.DATA,
                             Arrays.asList(
                                     Arrays.asList(0.123)
                             )
@@ -80,6 +86,7 @@ public class ChannelBeanParseTest {
                     "[123,[123.0]]",
                     new ChannelBean(
                             123,
+                            ChannelBean.Type.DATA,
                             Arrays.asList(
                                     Arrays.asList(123.0)
                             )
@@ -90,6 +97,7 @@ public class ChannelBeanParseTest {
                     "[123,[11,22]]",
                     new ChannelBean(
                             123,
+                            ChannelBean.Type.DATA,
                             Arrays.asList(
                                     Arrays.asList(11.0,22.0)
                             )
@@ -100,6 +108,7 @@ public class ChannelBeanParseTest {
                     "[123,[11,22,33]]",
                     new ChannelBean(
                             123,
+                            ChannelBean.Type.DATA,
                             Arrays.asList(
                                     Arrays.asList(11.0,22.0,33.0)
                             )
@@ -110,6 +119,7 @@ public class ChannelBeanParseTest {
                     "[123,[[11],[22]]]",
                     new ChannelBean(
                             123,
+                            ChannelBean.Type.DATA,
                             Arrays.asList(
                                     Arrays.asList(11.0),
                                     Arrays.asList(22.0)
@@ -121,6 +131,7 @@ public class ChannelBeanParseTest {
                     "[123,[[11],[22],[33]]]",
                     new ChannelBean(
                             123,
+                            ChannelBean.Type.DATA,
                             Arrays.asList(
                                     Arrays.asList(11.0),
                                     Arrays.asList(22.0),

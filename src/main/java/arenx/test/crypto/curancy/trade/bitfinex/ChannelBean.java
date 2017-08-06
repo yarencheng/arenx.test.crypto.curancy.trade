@@ -13,11 +13,17 @@ import arenx.test.crypto.curancy.trade.antlr4.BitfinexParser.ChannelContext;
 
 public class ChannelBean {
 
+    public enum Type{
+        DATA, HEART_BEAT
+    }
+
     public Integer id;
     public List<List<Double>> data;
+    public Type type;
 
-    public ChannelBean(Integer id, List<List<Double>> data){
+    public ChannelBean(Integer id, Type type, List<List<Double>> data){
         this.id = id;
+        this.type= type;
         this.data = data;
     }
 
@@ -31,6 +37,7 @@ public class ChannelBean {
         int result = 1;
         result = prime * result + ((data == null) ? 0 : data.hashCode());
         result = prime * result + ((id == null) ? 0 : id.hashCode());
+        result = prime * result + ((type == null) ? 0 : type.hashCode());
         return result;
     }
 
@@ -52,6 +59,8 @@ public class ChannelBean {
             if (other.id != null)
                 return false;
         } else if (!id.equals(other.id))
+            return false;
+        if (type != other.type)
             return false;
         return true;
     }

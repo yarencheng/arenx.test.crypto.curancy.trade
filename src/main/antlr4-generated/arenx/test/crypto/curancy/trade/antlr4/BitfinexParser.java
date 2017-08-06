@@ -130,7 +130,7 @@ public class BitfinexParser extends Parser {
 			match(T__1);
 			setState(18);
 			((ChannelContext)_localctx).records = records();
-			 _localctx.bean.data = ((ChannelContext)_localctx).records.values; 
+			 _localctx.bean.data = ((ChannelContext)_localctx).records.values; _localctx.bean.type = ChannelBean.Type.DATA; 
 			setState(20);
 			match(T__2);
 			setState(21);

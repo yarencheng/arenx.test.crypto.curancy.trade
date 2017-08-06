@@ -16,7 +16,7 @@ channel returns [ChannelBean bean]
 	:	'['
 		id					{ $bean.id = Integer.parseInt($id.text); }
 		','
-		records				{ $bean.data = $records.values; }
+		records				{ $bean.data = $records.values; $bean.type = ChannelBean.Type.DATA; }
 		']'
 		EOF
 	;
