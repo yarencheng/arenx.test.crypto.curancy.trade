@@ -2,6 +2,7 @@ package arenx.test.crypto.curancy.trade.bitfinex;
 
 import java.util.List;
 
+import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CodePointCharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -70,14 +71,14 @@ public class ChannelBean {
 
         BitfinexParser parser = new BitfinexParser(tokens);
         parser.removeErrorListeners();
+        parser.setErrorHandler(new BailErrorStrategy());
 
-        ChannelContext  context = parser.channel();
-
-        if (null != context.exception) {
-            throw new IllegalArgumentException(String.format("[%s] is not valid.", value), context.exception);
+        try {
+            ChannelContext  context = parser.channel();
+            ChannelBean bean = context.bean;
+            return bean;
+        } catch (Throwable e) {
+            throw new IllegalArgumentException(String.format("[%s] is not valid.", value), e);
         }
-
-        ChannelBean bean = context.bean;
-        return bean;
     }
 }

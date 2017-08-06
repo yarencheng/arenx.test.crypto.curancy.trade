@@ -18,6 +18,7 @@ channel returns [ChannelBean bean]
 		','
 		records				{ $bean.data = $records.values; }
 		']'
+		EOF
 	;
 
 records returns [List<List<Double>> values]
