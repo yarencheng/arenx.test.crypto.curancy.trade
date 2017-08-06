@@ -92,6 +92,17 @@ public class ChannelBeanParseTest {
             },
             new Object[]{
                     true,
+                    "[123,[0.0123]]",
+                    new ChannelBean(
+                            123,
+                            ChannelBean.Type.DATA,
+                            Arrays.asList(
+                                    Arrays.asList(0.0123)
+                            )
+                    )
+            },
+            new Object[]{
+                    true,
                     "[123,[123.0]]",
                     new ChannelBean(
                             123,
@@ -153,7 +164,18 @@ public class ChannelBeanParseTest {
             new Object[]{ false, "ss", null },
             new Object[]{ false, "[123,[]]", null },
             new Object[]{ false, "[123,[[]]]", null },
-            new Object[]{ false, "[123,[[],[]]]", null }
+            new Object[]{ false, "[123,[[],[]]]", null },
+            new Object[]{
+                    true,
+                    "[79969,[0.080553,0,-1]]",      // [79969,[0.080553,0,-1]]
+                    new ChannelBean(
+                            79969,
+                            ChannelBean.Type.DATA,
+                            Arrays.asList(
+                                    Arrays.asList(0.080553, 0.0, -1.0)
+                            )
+                    )
+            }
         );
     }
 

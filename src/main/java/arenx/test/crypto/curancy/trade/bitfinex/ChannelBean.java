@@ -18,8 +18,8 @@ public class ChannelBean {
     }
 
     public Integer id;
-    public List<List<Double>> data;
     public Type type;
+    public List<List<Double>> data;
 
     public ChannelBean(Integer id, Type type, List<List<Double>> data){
         this.id = id;
@@ -67,7 +67,7 @@ public class ChannelBean {
 
     @Override
     public String toString() {
-        return "ChannelBean [id=" + id + ", data=" + data + "]";
+        return "ChannelBean [id=" + id + ", type=" + type + ", data=" + data + "]";
     }
 
     public static ChannelBean parse(String value) {

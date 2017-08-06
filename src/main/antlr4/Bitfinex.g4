@@ -57,7 +57,7 @@ float_			: Sign? Decimal ('.' Decimal)? ;
 integer         : Sign? Decimal ;
 
 Sign			: '-' | '+' ;
-Decimal         : '0' | '1'..'9' (DecimalDigit)* ;
+Decimal         : (DecimalDigit)* ;
 DecimalDigit	: '0'..'9' ;
 WS  			: [ \t\r\n]+ -> skip ;
 HeartBeat		: '"hb"' ;
