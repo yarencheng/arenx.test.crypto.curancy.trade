@@ -323,6 +323,9 @@ public class BitfinexExchangeApi {
     }
 
     private void handleSubscribed(WebSocketBean bean){
+
+        logger.error("bean = {}", bean);
+
         if (bean.channel == Channel.BOOK) {
             subscribedBooks.put(bean.channelId, bean.symbol);
         }
