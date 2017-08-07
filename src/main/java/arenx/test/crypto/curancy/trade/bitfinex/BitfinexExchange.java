@@ -59,8 +59,9 @@ public class BitfinexExchange extends BaseExchange {
 	private WebSocketConnectionManager wsm;
 	private ObjectMapper mapper = new ObjectMapper();
 	private LinkedList<WebSocketBean> unhandledWsBeans = new LinkedList<>();
-
 	private LinkedList<ChannelBean> unhandledChBeans = new LinkedList<>();
+
+
 
 	Thread wsThread = new Thread(()->{
         while (true) {

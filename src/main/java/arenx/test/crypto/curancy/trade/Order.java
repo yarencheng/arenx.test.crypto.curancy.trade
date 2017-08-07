@@ -93,6 +93,11 @@ public class Order {
 		return id;
 	}
 
+    @Override
+    public String toString() {
+        return "Order [id=" + id + ", fromCurrency=" + fromCurrency + ", toCurrency=" + toCurrency + ", exchange=" + exchange + ", type=" + type + ", price=" + price + ", volume=" + volume + "]";
+    }
+
 
 
 }
