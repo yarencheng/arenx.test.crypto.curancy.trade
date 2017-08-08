@@ -150,18 +150,24 @@ public class BitfinexExchangeApi {
     };
 
     private Runnable watchdog = ()->{
-        while(isStopped.get()){
+
+        while(!isStopped.get()){
+
             if (isNeedRestart.get()) {
 
                 logger.info("Prepare to restart");
 
                 isNeedRestart.set(false);
+                isStopped.set(true);
 
                 disconnect();
 
                 if (null != reconnectListener) {
                     reconnectListener.run();
                 }
+
+                isStopped.set(false);
+
                 connect();
             }
 
