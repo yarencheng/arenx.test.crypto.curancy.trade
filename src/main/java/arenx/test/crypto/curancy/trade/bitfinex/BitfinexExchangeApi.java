@@ -99,7 +99,11 @@ public class BitfinexExchangeApi {
     private Thread watchdogThread;
 
     private Runnable sendWsWorker = ()->{
-        while (!isStopped.get()) {
+
+        logger.info("sending worker is starting");
+
+        while (!isStopped.get() && !isNeedRestart.get()) {
+
             TextMessage send = null;
 
             try {
@@ -124,7 +128,10 @@ public class BitfinexExchangeApi {
     };
 
     private Runnable receiveWsWorker = ()->{
-        while (!isStopped.get()) {
+
+        logger.info("receive worker is starting");
+
+        while (!isStopped.get() && !isNeedRestart.get()) {
             TextMessage receive = null;
 
             try {
@@ -151,22 +158,22 @@ public class BitfinexExchangeApi {
 
     private Runnable watchdog = ()->{
 
+        logger.info("watch dog is starting");
+
         while(!isStopped.get()){
 
             if (isNeedRestart.get()) {
 
                 logger.info("Prepare to restart");
 
-                isNeedRestart.set(false);
-                isStopped.set(true);
-
                 disconnect();
+
+                isNeedRestart.set(false);
+
 
                 if (null != reconnectListener) {
                     reconnectListener.run();
                 }
-
-                isStopped.set(false);
 
                 connect();
             }
@@ -232,16 +239,21 @@ public class BitfinexExchangeApi {
         watchdogThread = new Thread(watchdog);
         watchdogThread.start();
 
-        Runtime.getRuntime().addShutdownHook(new Thread(()->{
-            stop();
-        }));
+//        Runtime.getRuntime().addShutdownHook(new Thread(()->{
+//                       stop();
+//                    }));
     }
 
     @PreDestroy
     private void stop(){
         isStopped.set(true);
 
-        disconnect();
+        logger.info("join wathdog thread");
+        try {
+            watchdogThread.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void handle(TextMessage receive) throws JsonParseException, JsonMappingException, IOException{
@@ -478,7 +490,7 @@ public class BitfinexExchangeApi {
         sendWsWorkerThread.start();
 
         receiveWsWorkerThread = new Thread(receiveWsWorker, "Bitfinex-ws-receive-thread");
-        sendWsWorkerThread.setUncaughtExceptionHandler((thread, e)->{
+        receiveWsWorkerThread.setUncaughtExceptionHandler((thread, e)->{
             logger.error("something was wrong in [" + thread.getName() + "]", e);
             System.exit(-1);
         });
