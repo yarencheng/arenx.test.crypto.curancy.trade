@@ -37,11 +37,15 @@ public class BitfinexExchangeApiIntegrationTest {
     }
 
     @After
-    public void after() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+    public void after() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InterruptedException{
         Method stopMethod = BitfinexExchangeApi.class.getDeclaredMethod("stop");
         stopMethod.setAccessible(true);
 
         stopMethod.invoke(api);
+
+        api = null;
+
+        Thread.sleep(1000); // avoid too many request to bitfinex
     }
 
     @Test
