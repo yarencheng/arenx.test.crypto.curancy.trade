@@ -280,9 +280,9 @@ public class PoloTest {
 //					arg0.sendMessage(new TextMessage("{ \"event\":\"ping\"}"));
 					arg0.sendMessage(new TextMessage("{\"event\": \"subscribe\", \"channel\": \"book\", \"symbol\": \"tETHBTC\", \"prec\": \"P0\",  \"freq\": \"F0\",  \"len\": 25 }"));
 
-					Thread.sleep(1000);
+//					Thread.sleep(1000);
 
-					arg0.sendMessage(new TextMessage("{\"event\": \"subscribe\", \"channel\": \"book\", \"symbol\": \"tETHBTC\", \"prec\": \"P0\",  \"freq\": \"F0\",  \"len\": 25 }"));
+//					arg0.sendMessage(new TextMessage("{\"event\": \"subscribe\", \"channel\": \"book\", \"symbol\": \"tETHBTC\", \"prec\": \"P0\",  \"freq\": \"F0\",  \"len\": 25 }"));
 
 //					Thread.sleep(5);
 //					arg0.sendMessage(new TextMessage("{\"event\": \"subscribe\", \"channel\": \"book\", \"symbol\": \"tZECBTC\", \"prec\": \"P0\",  \"freq\": \"F0\",  \"len\": 25 }"));

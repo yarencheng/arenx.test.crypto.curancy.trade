@@ -103,7 +103,7 @@ public class BitfinexExchangeApi {
             TextMessage send = null;
 
             try {
-                send = sendWsQueue.pollFirst(1, TimeUnit.SECONDS);
+                send = sendWsQueue.pollLast(1, TimeUnit.SECONDS);
             } catch (InterruptedException e1) {
                 throw new RuntimeException(e1);
             }
@@ -128,7 +128,7 @@ public class BitfinexExchangeApi {
             TextMessage receive = null;
 
             try {
-                receive = receiveWsQueue.pollFirst(1, TimeUnit.SECONDS);
+                receive = receiveWsQueue.pollLast(1, TimeUnit.SECONDS);
             } catch (InterruptedException e1) {
                 // TODO Auto-generated catch block
                 e1.printStackTrace();
@@ -209,6 +209,10 @@ public class BitfinexExchangeApi {
     public void setReconnectListener(Runnable listener){
         Validate.notNull(listener);
         this.reconnectListener = listener;
+    }
+
+    public void reconnect(){
+        isNeedRestart.set(true);
     }
 
     @PostConstruct
@@ -323,9 +327,6 @@ public class BitfinexExchangeApi {
     }
 
     private void handleSubscribed(WebSocketBean bean){
-
-        logger.error("bean = {}", bean);
-
         if (bean.channel == Channel.BOOK) {
             subscribedBooks.put(bean.channelId, bean.symbol);
         }
@@ -351,12 +352,10 @@ public class BitfinexExchangeApi {
             isNeedRestart.set(true);
             break;
         default:
-            logger.error("unknown error force stop");
+            logger.error("unknown error [{}] force stop", bean.code);
             isStopped.set(true);
         }
     }
-
-
 
     private void disconnect(){
         if (null != sendWsWorkerThread) {
@@ -369,7 +368,7 @@ public class BitfinexExchangeApi {
         }
 
         if (null != receiveWsWorkerThread) {
-            logger.info("join sending thread of web socket");
+            logger.info("join receiving thread of web socket");
             try {
                 receiveWsWorkerThread.join();
             } catch (InterruptedException e) {
@@ -427,6 +426,7 @@ public class BitfinexExchangeApi {
                     public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
                         logger.debug("recieve message [{}]", message.getPayload());
                         TextMessage m = (TextMessage) message;
+
                         receiveWsQueue.push(m);
                     }
 
