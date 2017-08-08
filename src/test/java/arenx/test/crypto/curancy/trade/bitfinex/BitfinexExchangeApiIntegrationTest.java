@@ -44,7 +44,7 @@ public class BitfinexExchangeApiIntegrationTest {
         stopMethod.invoke(api);
     }
 
-//    @Test
+    @Test
     public void receive_2_book_message_in_10_seconds() throws InterruptedException{
         CountDownLatch count = new CountDownLatch(2);
 
@@ -58,7 +58,7 @@ public class BitfinexExchangeApiIntegrationTest {
         Assert.assertTrue(count.await(10, TimeUnit.SECONDS));
     }
 
-//    @Test
+    @Test
     public void reconnectListener() throws InterruptedException{
         CountDownLatch reconnect = new CountDownLatch(1);
 
@@ -87,11 +87,12 @@ public class BitfinexExchangeApiIntegrationTest {
         CountDownLatch count2 = new CountDownLatch(1);
 
         api.setReconnectListener(()->{
-
-            logger.error("setReconnectListener");
-
+            try {
+                api.subscribeBook(Sets.newHashSet(Currency.ETHEREUM, Currency.BITCOIN));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             api.setOrderUpdateListener(bean->{
-                logger.error("setOrderUpdateListener");
                 count2.countDown();
             });
         });

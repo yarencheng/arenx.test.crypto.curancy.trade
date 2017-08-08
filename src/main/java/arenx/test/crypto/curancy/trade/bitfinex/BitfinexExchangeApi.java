@@ -179,6 +179,8 @@ public class BitfinexExchangeApi {
         }
 
         disconnect();
+
+        logger.info("watchdog is stopped");
     };
 
     public void subscribeBook(Set<Currency> currencies) throws InterruptedException{
@@ -334,6 +336,7 @@ public class BitfinexExchangeApi {
 
     private void handleSubscribed(WebSocketBean bean){
         if (bean.channel == Channel.BOOK) {
+            logger.info("add book subscribe [{}], channel id [{}]", bean.symbol, bean.channelId);
             subscribedBooks.put(bean.channelId, bean.symbol);
         }
     }
