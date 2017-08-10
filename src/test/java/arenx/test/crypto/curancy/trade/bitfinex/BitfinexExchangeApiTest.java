@@ -1,14 +1,17 @@
 package arenx.test.crypto.curancy.trade.bitfinex;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
 
+import java.io.IOException;
 import java.net.URI;
+import java.util.Set;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -18,14 +21,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
+import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.WebSocketClient;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import arenx.test.crypto.curancy.trade.Currency;
+import arenx.test.crypto.curancy.trade.Order;
+import arenx.test.crypto.curancy.trade.Order.Type;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = { BitfinexExchangeApiTest.class })
@@ -36,32 +48,30 @@ public class BitfinexExchangeApiTest {
     private static Logger logger = LoggerFactory.getLogger(BitfinexExchangeApiTest.class);
 
     @Bean
-    public WebSocketClient getWebSocketClient() {
+    @Scope("singleton")
+    public WebSocketClient getWebSocketClient(@Autowired WebSocketSession session) {
 
-        WebSocketClient client = mock(WebSocketClient.class);
-        ListenableFuture<WebSocketSession> future = mock(ListenableFuture.class);
-        WebSocketSession session = mock(WebSocketSession.class);
-
-        Mockito.when(session.isOpen()).thenReturn(true);
+        WebSocketClient client = Mockito.mock(WebSocketClient.class);
+        ListenableFuture<WebSocketSession> future = Mockito.mock(ListenableFuture.class);
 
         Mockito.doAnswer(new Answer<ListenableFuture<WebSocketSession> >(){
 
             @Override
             public ListenableFuture<WebSocketSession> answer(InvocationOnMock invocation) throws Throwable {
 
-                WebSocketHandler ha = invocation.getArgumentAt(0, WebSocketHandler.class);
+                WebSocketHandler ha = invocation.getArgument(0);
 
                 ha.afterConnectionEstablished(session);
 
                 return future;
-            }}).when(client).doHandshake(any(WebSocketHandler.class), any(WebSocketHttpHeaders.class), any(URI.class));
+            }}).when(client).doHandshake(wsHandler.capture(), any(WebSocketHttpHeaders.class), any(URI.class));
 
         Mockito.doAnswer(new Answer<Void>(){
 
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {
 
-                ListenableFutureCallback<WebSocketSession> fn = invocation.getArgumentAt(0, ListenableFutureCallback.class);
+                ListenableFutureCallback<WebSocketSession> fn = invocation.getArgument(0);
 
                 fn.onSuccess(session);
 
@@ -71,21 +81,88 @@ public class BitfinexExchangeApiTest {
         return client;
     }
 
+    @Bean
+    @Scope("singleton")
+    WebSocketSession getWebSocketSession(){
+        WebSocketSession session = Mockito.mock(WebSocketSession.class);
+
+        Mockito.when(session.isOpen()).thenReturn(true);
+
+        return session;
+    }
+
+
     @Autowired
     BitfinexExchangeApi api;
 
+    @Autowired
+    WebSocketSession session;
 
+    ArgumentCaptor<WebSocketHandler> wsHandler = ArgumentCaptor.forClass(WebSocketHandler.class);
 
-    @BeforeClass
-    public static void beforeClass() {
+    @Before
+    public void before() {
     }
 
-    @AfterClass
-    public static void afterClass() {
+    @After
+    public void after() {
     }
 
     @Test
-    public void aaaa() throws InterruptedException {
+    public void subscribeBook() throws InterruptedException, IOException{
 
+        Set<Currency> currencies = BitfniexUtils.tETHBTCs;
+
+        api.subscribeBook(currencies);
+
+        ArgumentCaptor<TextMessage> actualMessage = ArgumentCaptor.forClass(TextMessage.class);
+
+        Mockito.verify(session, Mockito.timeout(10000).times(1)).sendMessage(actualMessage.capture());
+
+        JsonNode expectJson = new ObjectMapper().readTree("{"
+                + "\"event\":\"subscribe\","
+                + "\"channel\":\"book\","
+                + "\"symbol\":\"tETHBTC\","
+                + "\"prec\":\"P0\","
+                + "\"freq\":\"F0\","
+                + "\"len\":25"
+                + "}");
+
+        JsonNode actualJson = new ObjectMapper().readTree(actualMessage.getValue().getPayload());
+
+        Assert.assertEquals(expectJson, actualJson);
+    }
+
+    @Test
+    public void setOrderUpdateListener() throws Exception{
+
+        OrderUpdateListener callBack = Mockito.mock(OrderUpdateListener.class);
+        api.setOrderUpdateListener(callBack);
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("{"
+                + "\"event\":\"subscribed\","
+                + "\"channel\":\"111\","
+                + "\"chanId\":123,"
+                + "\"symbol\":\"tETHBTC\","
+                + "\"prec\":\"P0\","
+                + "\"freq\":\"F0\","
+                + "\"len\":25"
+                + "}"));
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("[111,[222.222,333,444.444]]"));
+
+        ArgumentCaptor<Order> actualOrder = ArgumentCaptor.forClass(Order.class);
+
+        Mockito.verify(callBack, Mockito.timeout(10000).times(1)).OnUpdate(actualOrder.capture());
+
+        Order expectedOrder = new Order();
+        expectedOrder.setExchange("bitfinex");
+        expectedOrder.setFromCurrency(Currency.ETHEREUM);
+        expectedOrder.setToCurrency(Currency.BITCOIN);
+        expectedOrder.setPrice(222.222);
+        expectedOrder.setType(Type.BID);
+        expectedOrder.setVolume(444.444);
+
+        Assert.assertEquals(expectedOrder, actualOrder.getValue());
     }
 }
