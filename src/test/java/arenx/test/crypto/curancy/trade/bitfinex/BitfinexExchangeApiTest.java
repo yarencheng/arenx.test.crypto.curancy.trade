@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.concurrent.ListenableFuture;
@@ -41,6 +42,7 @@ import arenx.test.crypto.curancy.trade.Order.Type;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = { BitfinexExchangeApiTest.class })
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Configuration
 @ComponentScan
 public class BitfinexExchangeApiTest {
@@ -49,7 +51,7 @@ public class BitfinexExchangeApiTest {
 
     @Bean
     @Scope("singleton")
-    public WebSocketClient getWebSocketClient(@Autowired WebSocketSession session) {
+    public WebSocketClient getWebSocketClient(@Autowired WebSocketSession session, @Autowired ArgumentCaptor<WebSocketHandler> wsHandler) {
 
         WebSocketClient client = Mockito.mock(WebSocketClient.class);
         ListenableFuture<WebSocketSession> future = Mockito.mock(ListenableFuture.class);
@@ -91,6 +93,12 @@ public class BitfinexExchangeApiTest {
         return session;
     }
 
+    @Bean
+    @Scope("singleton")
+    ArgumentCaptor<WebSocketHandler> getWsHandler(){
+        return ArgumentCaptor.forClass(WebSocketHandler.class);
+    }
+
 
     @Autowired
     BitfinexExchangeApi api;
@@ -98,7 +106,8 @@ public class BitfinexExchangeApiTest {
     @Autowired
     WebSocketSession session;
 
-    ArgumentCaptor<WebSocketHandler> wsHandler = ArgumentCaptor.forClass(WebSocketHandler.class);
+    @Autowired
+    ArgumentCaptor<WebSocketHandler> wsHandler;
 
     @Before
     public void before() {
@@ -141,8 +150,8 @@ public class BitfinexExchangeApiTest {
 
         wsHandler.getValue().handleMessage(session, new TextMessage("{"
                 + "\"event\":\"subscribed\","
-                + "\"channel\":\"111\","
-                + "\"chanId\":123,"
+                + "\"channel\":\"book\","
+                + "\"chanId\":111,"
                 + "\"symbol\":\"tETHBTC\","
                 + "\"prec\":\"P0\","
                 + "\"freq\":\"F0\","
@@ -164,5 +173,205 @@ public class BitfinexExchangeApiTest {
         expectedOrder.setVolume(444.444);
 
         Assert.assertEquals(expectedOrder, actualOrder.getValue());
+    }
+
+    @Test
+    public void setOrderUpdateListener_getId() throws Exception{
+
+        OrderUpdateListener callBack = Mockito.mock(OrderUpdateListener.class);
+        api.setOrderUpdateListener(callBack);
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("{"
+                + "\"event\":\"subscribed\","
+                + "\"channel\":\"book\","
+                + "\"chanId\":111,"
+                + "\"symbol\":\"tETHBTC\","
+                + "\"prec\":\"P0\","
+                + "\"freq\":\"F0\","
+                + "\"len\":25"
+                + "}"));
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("[111,[222.222,333,444.444]]"));
+
+        ArgumentCaptor<Order> actualOrder = ArgumentCaptor.forClass(Order.class);
+
+        Mockito.verify(callBack, Mockito.timeout(10000).times(1)).OnUpdate(actualOrder.capture());
+
+        Assert.assertNull(actualOrder.getValue().getId());
+    }
+
+    @Test
+    public void setOrderUpdateListener_getExchange() throws Exception{
+
+        OrderUpdateListener callBack = Mockito.mock(OrderUpdateListener.class);
+        api.setOrderUpdateListener(callBack);
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("{"
+                + "\"event\":\"subscribed\","
+                + "\"channel\":\"book\","
+                + "\"chanId\":111,"
+                + "\"symbol\":\"tETHBTC\","
+                + "\"prec\":\"P0\","
+                + "\"freq\":\"F0\","
+                + "\"len\":25"
+                + "}"));
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("[111,[222.222,333,444.444]]"));
+
+        ArgumentCaptor<Order> actualOrder = ArgumentCaptor.forClass(Order.class);
+
+        Mockito.verify(callBack, Mockito.timeout(10000).times(1)).OnUpdate(actualOrder.capture());
+
+        Assert.assertEquals("bitfinex", actualOrder.getValue().getExchange());
+    }
+
+    @Test
+    public void setOrderUpdateListener_exchange() throws Exception{
+
+        OrderUpdateListener callBack = Mockito.mock(OrderUpdateListener.class);
+        api.setOrderUpdateListener(callBack);
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("{"
+                + "\"event\":\"subscribed\","
+                + "\"channel\":\"book\","
+                + "\"chanId\":111,"
+                + "\"symbol\":\"tETHBTC\","
+                + "\"prec\":\"P0\","
+                + "\"freq\":\"F0\","
+                + "\"len\":25"
+                + "}"));
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("[111,[222.222,333,444.444]]"));
+
+        ArgumentCaptor<Order> actualOrder = ArgumentCaptor.forClass(Order.class);
+
+        Mockito.verify(callBack, Mockito.timeout(10000).times(1)).OnUpdate(actualOrder.capture());
+
+        Assert.assertEquals(Currency.ETHEREUM, actualOrder.getValue().getFromCurrency());
+    }
+
+    @Test
+    public void setOrderUpdateListener_getToCurrency() throws Exception{
+
+        OrderUpdateListener callBack = Mockito.mock(OrderUpdateListener.class);
+        api.setOrderUpdateListener(callBack);
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("{"
+                + "\"event\":\"subscribed\","
+                + "\"channel\":\"book\","
+                + "\"chanId\":111,"
+                + "\"symbol\":\"tETHBTC\","
+                + "\"prec\":\"P0\","
+                + "\"freq\":\"F0\","
+                + "\"len\":25"
+                + "}"));
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("[111,[222.222,333,444.444]]"));
+
+        ArgumentCaptor<Order> actualOrder = ArgumentCaptor.forClass(Order.class);
+
+        Mockito.verify(callBack, Mockito.timeout(10000).times(1)).OnUpdate(actualOrder.capture());
+
+        Assert.assertEquals(Currency.BITCOIN, actualOrder.getValue().getToCurrency());
+    }
+
+    @Test
+    public void setOrderUpdateListener_getPrice() throws Exception{
+
+        OrderUpdateListener callBack = Mockito.mock(OrderUpdateListener.class);
+        api.setOrderUpdateListener(callBack);
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("{"
+                + "\"event\":\"subscribed\","
+                + "\"channel\":\"book\","
+                + "\"chanId\":111,"
+                + "\"symbol\":\"tETHBTC\","
+                + "\"prec\":\"P0\","
+                + "\"freq\":\"F0\","
+                + "\"len\":25"
+                + "}"));
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("[111,[222.222,333,444.444]]"));
+
+        ArgumentCaptor<Order> actualOrder = ArgumentCaptor.forClass(Order.class);
+
+        Mockito.verify(callBack, Mockito.timeout(10000).times(1)).OnUpdate(actualOrder.capture());
+
+        Assert.assertEquals(222.222, actualOrder.getValue().getPrice(), 0);
+    }
+
+    @Test
+    public void setOrderUpdateListener_getVolume() throws Exception{
+
+        OrderUpdateListener callBack = Mockito.mock(OrderUpdateListener.class);
+        api.setOrderUpdateListener(callBack);
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("{"
+                + "\"event\":\"subscribed\","
+                + "\"channel\":\"book\","
+                + "\"chanId\":111,"
+                + "\"symbol\":\"tETHBTC\","
+                + "\"prec\":\"P0\","
+                + "\"freq\":\"F0\","
+                + "\"len\":25"
+                + "}"));
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("[111,[222.222,333,444.444]]"));
+
+        ArgumentCaptor<Order> actualOrder = ArgumentCaptor.forClass(Order.class);
+
+        Mockito.verify(callBack, Mockito.timeout(10000).times(1)).OnUpdate(actualOrder.capture());
+
+        Assert.assertEquals(444.444, actualOrder.getValue().getVolume(), 0);
+    }
+
+    @Test
+    public void setOrderUpdateListener_getType_bid() throws Exception{
+
+        OrderUpdateListener callBack = Mockito.mock(OrderUpdateListener.class);
+        api.setOrderUpdateListener(callBack);
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("{"
+                + "\"event\":\"subscribed\","
+                + "\"channel\":\"book\","
+                + "\"chanId\":111,"
+                + "\"symbol\":\"tETHBTC\","
+                + "\"prec\":\"P0\","
+                + "\"freq\":\"F0\","
+                + "\"len\":25"
+                + "}"));
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("[111,[222.222,333,444.444]]"));
+
+        ArgumentCaptor<Order> actualOrder = ArgumentCaptor.forClass(Order.class);
+
+        Mockito.verify(callBack, Mockito.timeout(10000).times(1)).OnUpdate(actualOrder.capture());
+
+        Assert.assertEquals(Type.BID, actualOrder.getValue().getType());
+    }
+
+    @Test
+    public void setOrderUpdateListener_getType_ask() throws Exception{
+
+        OrderUpdateListener callBack = Mockito.mock(OrderUpdateListener.class);
+        api.setOrderUpdateListener(callBack);
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("{"
+                + "\"event\":\"subscribed\","
+                + "\"channel\":\"book\","
+                + "\"chanId\":111,"
+                + "\"symbol\":\"tETHBTC\","
+                + "\"prec\":\"P0\","
+                + "\"freq\":\"F0\","
+                + "\"len\":25"
+                + "}"));
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("[111,[222.222,333,-444.444]]"));
+
+        ArgumentCaptor<Order> actualOrder = ArgumentCaptor.forClass(Order.class);
+
+        Mockito.verify(callBack, Mockito.timeout(10000).times(1)).OnUpdate(actualOrder.capture());
+
+        Assert.assertEquals(Type.ASK, actualOrder.getValue().getType());
     }
 }

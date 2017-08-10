@@ -15,7 +15,7 @@ public class Order {
 
 	@PrimaryKey
 	@Persistent(valueStrategy=IdGeneratorStrategy.IDENTITY)
-	private long id;
+	private Long id;
 
 	@Persistent
 	@Column(allowsNull="false")
@@ -89,13 +89,65 @@ public class Order {
 		this.volume = volume;
 	}
 
-	public long getId() {
+	public Long getId() {
 		return id;
 	}
 
     @Override
     public String toString() {
         return "Order [id=" + id + ", fromCurrency=" + fromCurrency + ", toCurrency=" + toCurrency + ", exchange=" + exchange + ", type=" + type + ", price=" + price + ", volume=" + volume + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((exchange == null) ? 0 : exchange.hashCode());
+        result = prime * result + ((fromCurrency == null) ? 0 : fromCurrency.hashCode());
+        result = prime * result + ((id == null) ? 0 : id.hashCode());
+        result = prime * result + ((price == null) ? 0 : price.hashCode());
+        result = prime * result + ((toCurrency == null) ? 0 : toCurrency.hashCode());
+        result = prime * result + ((type == null) ? 0 : type.hashCode());
+        result = prime * result + ((volume == null) ? 0 : volume.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Order other = (Order) obj;
+        if (exchange == null) {
+            if (other.exchange != null)
+                return false;
+        } else if (!exchange.equals(other.exchange))
+            return false;
+        if (fromCurrency != other.fromCurrency)
+            return false;
+        if (id == null) {
+            if (other.id != null)
+                return false;
+        } else if (!id.equals(other.id))
+            return false;
+        if (price == null) {
+            if (other.price != null)
+                return false;
+        } else if (!price.equals(other.price))
+            return false;
+        if (toCurrency != other.toCurrency)
+            return false;
+        if (type != other.type)
+            return false;
+        if (volume == null) {
+            if (other.volume != null)
+                return false;
+        } else if (!volume.equals(other.volume))
+            return false;
+        return true;
     }
 
 

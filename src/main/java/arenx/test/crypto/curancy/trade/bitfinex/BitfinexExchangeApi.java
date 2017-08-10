@@ -313,7 +313,7 @@ public class BitfinexExchangeApi {
                     old = new Order();
                     old.setExchange("bitfinex");
                     old.setFromCurrency(currencies.get(0));
-                    old.setFromCurrency(currencies.get(1));
+                    old.setToCurrency(currencies.get(1));
                     old.setPrice(price);
                     old.setType(key.type);
                     old.setVolume(0.0);
