@@ -18,6 +18,7 @@ import javax.annotation.PreDestroy;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -28,7 +29,6 @@ import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.WebSocketConnectionManager;
-import org.springframework.web.socket.client.jetty.JettyWebSocketClient;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -89,6 +89,9 @@ public class BitfinexExchangeApi {
     private ObjectMapper mapper = new ObjectMapper();
     private AtomicBoolean isNeedRestart = new AtomicBoolean(false);
     private AtomicBoolean isStopped = new AtomicBoolean(false);
+
+    @Autowired
+    private WebSocketClient client;
 
     private WebSocketConnectionManager wsm;
     private WebSocketSession ws;
@@ -238,10 +241,6 @@ public class BitfinexExchangeApi {
         logger.info("create watch dog");
         watchdogThread = new Thread(watchdog);
         watchdogThread.start();
-
-//        Runtime.getRuntime().addShutdownHook(new Thread(()->{
-//                       stop();
-//                    }));
     }
 
     @PreDestroy
@@ -423,7 +422,7 @@ public class BitfinexExchangeApi {
     }
 
     private void startWebSocketConnection(){
-        WebSocketClient client = new JettyWebSocketClient();
+
         CountDownLatch isConnected = new CountDownLatch(1);
 
         wsm = new WebSocketConnectionManager(
