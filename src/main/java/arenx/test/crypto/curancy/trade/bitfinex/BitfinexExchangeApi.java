@@ -37,6 +37,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import arenx.test.crypto.curancy.trade.Currency;
 import arenx.test.crypto.curancy.trade.Order;
+import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 import arenx.test.crypto.curancy.trade.Order.Type;
 import arenx.test.crypto.curancy.trade.bitfinex.WebSocketBean.Channel;
 import arenx.test.crypto.curancy.trade.bitfinex.WebSocketBean.Event;

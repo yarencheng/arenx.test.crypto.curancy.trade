@@ -315,8 +315,7 @@
 							<ignore>com.example.boringcode.*</ignore>
 						</ignores>
 						<excludes>
-							<exclude>com/example/dullcode/**/*.class</exclude>
-							<exclude>com/example/**/*Test.class</exclude>
+							<exclude>arenx/test/crypto/curancy/trade/antlr4/**/*.class</exclude>
 						</excludes>
 					</instrumentation>
 					<check>

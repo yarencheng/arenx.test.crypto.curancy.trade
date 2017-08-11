@@ -5,8 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-import arenx.test.crypto.curancy.trade.bitfinex.BitfinexExchange;
-
 public class Main {
 
 	private static Logger logger = LoggerFactory.getLogger(Main.class);
@@ -20,7 +18,7 @@ public class Main {
 //			logger.info("polo {}", a);
 //		});
 
-		BitfinexExchange bitf = context.getBean(BitfinexExchange.class);
+//		BitfinexExchange bitf = context.getBean(BitfinexExchange.class);
 
 //		bitf.addUpdateListener(Currency.BITCOIN, Currency.ZECASH, (a)->{
 //			logger.info("bitf {}", a);
