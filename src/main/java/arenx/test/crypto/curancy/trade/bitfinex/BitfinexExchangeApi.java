@@ -91,7 +91,7 @@ public class BitfinexExchangeApi {
     private AtomicBoolean isStopped = new AtomicBoolean(false);
 
     @Autowired
-    private WebSocketClient client;
+    private WebSocketClient webSocketClient;
 
     private WebSocketConnectionManager wsm;
     private WebSocketSession ws;
@@ -426,7 +426,7 @@ public class BitfinexExchangeApi {
         CountDownLatch isConnected = new CountDownLatch(1);
 
         wsm = new WebSocketConnectionManager(
-                client,
+                webSocketClient,
                 new WebSocketHandler(){
 
                     @Override
