@@ -1,6 +1,5 @@
 package arenx.test.crypto.curancy.trade.bitfinex;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -39,11 +38,11 @@ public class BitfinexExchangeV2IntegrationTest {
     BitfinexExchangeV2 api;
 
     @Before
-    public void before() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+    public void before(){
     }
 
     @After
-    public void after() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InterruptedException{
+    public void after() throws InterruptedException{
         Thread.sleep(1000); // avoid too many request to bitfinex
     }
 

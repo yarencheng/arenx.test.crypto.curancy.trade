@@ -1,6 +1,7 @@
 package arenx.test.crypto.curancy.trade.bitfinex;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -86,6 +87,7 @@ public class BitfinexExchangeV2 implements ApiInterface{
 
     private BlockingDeque<TextMessage> sendWsQueue = new LinkedBlockingDeque<>();
     private BlockingDeque<TextMessage> receiveWsQueue = new LinkedBlockingDeque<>();
+    private List<Throwable> uncaughtExceptions = Collections.synchronizedList(new ArrayList<>());
     private SortedMap<Integer, String> subscribedBooks = Collections.synchronizedSortedMap(new TreeMap<>());
     private SortedMap<OrderKey, Order> orders = new TreeMap<>();
     private ObjectMapper mapper = new ObjectMapper();
@@ -183,12 +185,17 @@ public class BitfinexExchangeV2 implements ApiInterface{
                 connect();
             }
 
+            if (!uncaughtExceptions.isEmpty()) {
+                isStopped.set(true);
+            }
+
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
+
 
         disconnect();
 
@@ -222,11 +229,13 @@ public class BitfinexExchangeV2 implements ApiInterface{
         sendWsQueue.push(t);
     }
 
+    @Override
     public void setOrderUpdateListener(OrderUpdateListener listener){
         Validate.notNull(listener);
         this.orderUpdateListener = listener;
     }
 
+    @Override
     public void setReconnectListener(Runnable listener){
         Validate.notNull(listener);
         this.reconnectListener = listener;
@@ -255,6 +264,10 @@ public class BitfinexExchangeV2 implements ApiInterface{
             watchdogThread.join();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        }
+
+        if (!uncaughtExceptions.isEmpty()) {
+            throw new RuntimeException(uncaughtExceptions.get(0));
         }
     }
 
@@ -485,7 +498,7 @@ public class BitfinexExchangeV2 implements ApiInterface{
         sendWsWorkerThread = new Thread(sendWsWorker, "Bitfinex-ws-send-thread");
         sendWsWorkerThread.setUncaughtExceptionHandler((thread, e)->{
             logger.error("something was wrong in [" + thread.getName() + "]", e);
-            System.exit(-1);
+            uncaughtExceptions.add(e);
         });
 
         logger.info("Start sending thread [{}] of Bitfinex web socket", sendWsWorkerThread.getName());
@@ -494,7 +507,7 @@ public class BitfinexExchangeV2 implements ApiInterface{
         receiveWsWorkerThread = new Thread(receiveWsWorker, "Bitfinex-ws-receive-thread");
         receiveWsWorkerThread.setUncaughtExceptionHandler((thread, e)->{
             logger.error("something was wrong in [" + thread.getName() + "]", e);
-            System.exit(-1);
+            uncaughtExceptions.add(e);
         });
 
         logger.info("Start receiving thread [{}] of Bitfinex web socket", receiveWsWorkerThread.getName());
