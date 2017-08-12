@@ -11,7 +11,6 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -21,8 +20,7 @@ import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 import ws.wamp.jawampa.WampClient;
 
 @Component
-@Scope("singleton")
-@Lazy
+@Scope("prototype")
 public class PoloniexExchange implements ApiInterface {
 
     private static Logger logger = LoggerFactory.getLogger(PoloniexExchange.class);

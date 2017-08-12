@@ -20,7 +20,6 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -47,8 +46,7 @@ import arenx.test.crypto.curancy.trade.bitfinex.WebSocketBean.Frequency;
 import arenx.test.crypto.curancy.trade.bitfinex.WebSocketBean.Precision;
 
 @Component
-@Scope("singleton")
-@Lazy
+@Scope("prototype")
 public class BitfinexExchangeV2 implements ApiInterface{
 
     private static class OrderKey implements Comparable<OrderKey>{
@@ -172,6 +170,7 @@ public class BitfinexExchangeV2 implements ApiInterface{
             if (isNeedRestart.get()) {
 
                 logger.info("Prepare to restart");
+                logger.error("Prepare to restart");
 
                 disconnect();
 
@@ -242,6 +241,8 @@ public class BitfinexExchangeV2 implements ApiInterface{
     }
 
     public void reconnect(){
+
+        logger.error("reconnect()");
         isNeedRestart.set(true);
     }
 
@@ -293,6 +294,11 @@ public class BitfinexExchangeV2 implements ApiInterface{
 
     private void handle(ChannelBean ch){
         String symbol = subscribedBooks.get(ch.id);
+
+        if (ch.type == ChannelBean.Type.HEART_BEAT) {
+            logger.info("receive heart beat [{}]", symbol);
+            return;
+        }
 
         List<Currency> currencies = BitfniexUtils.toCurrencies(symbol);
 
@@ -468,9 +474,8 @@ public class BitfinexExchangeV2 implements ApiInterface{
 
                     @Override
                     public void handleTransportError(WebSocketSession session, Throwable e) throws Exception {
-                        logger.error("recieve error from Bitfinex [{}]", e.getMessage());
-                        logger.debug("recieve error from Bitfinex", e);
-                        throw new Exception(e);
+                        logger.error("recieve error from Bitfinex", e);
+                        uncaughtExceptions.add(e);
                     }
 
                     @Override

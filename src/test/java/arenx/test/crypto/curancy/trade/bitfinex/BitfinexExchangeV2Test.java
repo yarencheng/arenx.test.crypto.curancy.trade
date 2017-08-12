@@ -177,6 +177,30 @@ public class BitfinexExchangeV2Test {
     }
 
     @Test
+    public void setOrderUpdateListener_heartBeat() throws Exception{
+
+        OrderUpdateListener callBack = Mockito.mock(OrderUpdateListener.class);
+        api.setOrderUpdateListener(callBack);
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("{"
+                + "\"event\":\"subscribed\","
+                + "\"channel\":\"book\","
+                + "\"chanId\":111,"
+                + "\"symbol\":\"tETHBTC\","
+                + "\"prec\":\"P0\","
+                + "\"freq\":\"F0\","
+                + "\"len\":25"
+                + "}"));
+
+        wsHandler.getValue().handleMessage(session, new TextMessage("[111,\"hb\"]"));
+        wsHandler.getValue().handleMessage(session, new TextMessage("[111,[222.222,333,444.444]]"));
+
+        ArgumentCaptor<Order> actualOrder = ArgumentCaptor.forClass(Order.class);
+
+        Mockito.verify(callBack, Mockito.timeout(10000).times(1)).OnUpdate(actualOrder.capture());
+    }
+
+    @Test
     public void setOrderUpdateListener_getId() throws Exception{
 
         OrderUpdateListener callBack = Mockito.mock(OrderUpdateListener.class);
