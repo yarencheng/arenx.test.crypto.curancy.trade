@@ -12,6 +12,7 @@
 		<spring.version>4.3.10.RELEASE</spring.version>
 		<datanucleus.version>5.1.0-release</datanucleus.version>
 		<antlr4.version>4.7</antlr4.version>
+		<skip.surefire.tests>false</skip.surefire.tests>
 	</properties>
 
 	<dependencies>
@@ -229,6 +230,7 @@
 				<version>2.20</version>
 				<configuration>
 					<excludedGroups>arenx.test.crypto.curancy.trade.IntegrationTest</excludedGroups>
+					<skip>${skip.surefire.tests}</skip>
 				</configuration>
 			</plugin>
 			<plugin>

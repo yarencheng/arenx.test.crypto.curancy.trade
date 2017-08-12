@@ -170,7 +170,6 @@ public class BitfinexExchangeV2 implements ApiInterface{
             if (isNeedRestart.get()) {
 
                 logger.info("Prepare to restart");
-                logger.error("Prepare to restart");
 
                 disconnect();
 
@@ -241,8 +240,6 @@ public class BitfinexExchangeV2 implements ApiInterface{
     }
 
     public void reconnect(){
-
-        logger.error("reconnect()");
         isNeedRestart.set(true);
     }
 
