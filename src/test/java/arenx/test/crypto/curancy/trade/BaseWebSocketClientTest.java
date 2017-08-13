@@ -25,6 +25,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
+import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.WebSocketSession;
@@ -116,7 +117,6 @@ public class BaseWebSocketClientTest {
     @Test
     public void sendMessage() throws IOException{
         baseWebSocketClient.sendMessage("ss");
-        verify(session, timeout(10000).times(1)).sendMessage(any());
-//        verify(session, timeout(10000).times(1));
+        verify(session, timeout(10000).times(1)).sendMessage(new TextMessage("ss"));
     }
 }
