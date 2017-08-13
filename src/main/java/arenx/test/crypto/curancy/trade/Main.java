@@ -1,13 +1,18 @@
 package arenx.test.crypto.curancy.trade;
 
-import java.util.concurrent.TimeUnit;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.WebSocketMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.client.WebSocketClient;
+import org.springframework.web.socket.client.WebSocketConnectionManager;
+import org.springframework.web.socket.client.jetty.JettyWebSocketClient;
 
-import ws.wamp.jawampa.WampClient;
-import ws.wamp.jawampa.WampClientBuilder;
-import ws.wamp.jawampa.transport.netty.NettyWampClientConnectorProvider;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Main {
 
@@ -20,7 +25,7 @@ public class Main {
 //		polo.subscribeOrder(Sets.newHashSet(Currency.BITCOIN, Currency.ZECASH));
 
 
-/*
+
 	    org.eclipse.jetty.websocket.client.WebSocketClient c = new org.eclipse.jetty.websocket.client.WebSocketClient();
 	    c.getPolicy().setMaxTextMessageSize(1024*1024);
 
@@ -42,12 +47,20 @@ public class Main {
 //                        session.sendMessage(new TextMessage("{\"command\": \"subscribe\", \"channel\": 1002}"));
 //                        session.sendMessage(new TextMessage("{\"command\": \"subscribe\", \"channel\": 1003}"));
                         session.sendMessage(new TextMessage("{\"command\": \"subscribe\", \"channel\": \"BTC_ZEC\"}"));
-                        session.sendMessage(new TextMessage("{\"command\": \"subscribe\", \"channel\": \"BTC_ETH\"}"));
+//                        session.sendMessage(new TextMessage("{\"command\": \"subscribe\", \"channel\": \"BTC_ETH\"}"));
                     }
 
                     @Override
                     public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
                         logger.info("recieve polo essage [{}]", message.getPayload());
+
+                        ObjectMapper ma = new ObjectMapper();
+
+                        JsonNode n = ma.readTree(message.getPayload().toString());
+
+                        if(message.getPayload().toString().length()<200){
+                            System.out.println(n);
+                        }
                     }
 
                     @Override
@@ -62,31 +75,7 @@ public class Main {
                 "wss://api2.poloniex.com"
             );
 
-        wsm.start();*/
-
-	    WampClient wampClient = new WampClientBuilder()
-        .withConnectorProvider(new NettyWampClientConnectorProvider())
-        .withUri("wss://api2.poloniex.com")
-        .withRealm("realm1")
-        .withInfiniteReconnects()
-        .withReconnectInterval(1, TimeUnit.SECONDS)
-        .build();
-	    wampClient.statusChanged().subscribe((WampClient.State status)->{
-
-            if (status instanceof WampClient.ConnectingState) {
-                logger.info("is connecting to poloniex [{}]", status);
-            } else if (status instanceof WampClient.ConnectedState) {
-                logger.info("is connected to poloniex [{}]", status);
-            } else if (status instanceof WampClient.DisconnectedState) {
-                logger.info("disconnected from poloniex [{}]", status);
-            } else {
-                String s = String.format("unknown status [%s]", status);
-                logger.error(s);
-            }
-        });
-
-        wampClient.open();
-
+        wsm.start();
 
 		while (true) {
 			try {

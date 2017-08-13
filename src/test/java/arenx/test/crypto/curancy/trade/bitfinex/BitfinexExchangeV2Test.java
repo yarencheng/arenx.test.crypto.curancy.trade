@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.test.annotation.DirtiesContext;
@@ -45,7 +44,6 @@ import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 @ContextConfiguration(classes = { BitfinexExchangeV2Test.class })
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Configuration
-@ComponentScan
 public class BitfinexExchangeV2Test {
 
     private static Logger logger = LoggerFactory.getLogger(BitfinexExchangeV2Test.class);
