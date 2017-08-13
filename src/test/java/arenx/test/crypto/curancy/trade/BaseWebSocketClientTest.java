@@ -8,7 +8,10 @@ import static org.mockito.Mockito.verify;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -88,11 +91,17 @@ public class BaseWebSocketClientTest {
     }
 
     @Bean
-    BaseWebSocketClient getBaseWebSocketClient() throws URISyntaxException{
+    LinkedBlockingDeque<CharSequence> getReceivedMessages(){
+        return new LinkedBlockingDeque<>();
+    }
+
+    @Bean
+    BaseWebSocketClient getBaseWebSocketClient(@Autowired LinkedBlockingDeque<CharSequence> rm) throws URISyntaxException{
 
         BaseWebSocketClient c = spy(new BaseWebSocketClient(){
             @Override
             protected void onMessageReceive(CharSequence message) {
+                rm.add(message);
             }
 
             @Override
@@ -114,9 +123,21 @@ public class BaseWebSocketClientTest {
     @Autowired
     WebSocketSession session;
 
+    @Autowired
+    ArgumentCaptor<WebSocketHandler> wsHandler;
+
+    @Autowired
+    LinkedBlockingDeque<CharSequence> receivedMessages;
+
     @Test
     public void sendMessage() throws IOException{
         baseWebSocketClient.sendMessage("ss");
         verify(session, timeout(10000).times(1)).sendMessage(new TextMessage("ss"));
+    }
+
+    @Test
+    public void onMessageReceive() throws Exception{
+        wsHandler.getValue().handleMessage(session, new TextMessage("aaa"));
+        Assert.assertEquals("aaa", receivedMessages.pollLast(10, TimeUnit.SECONDS));
     }
 }

@@ -93,6 +93,7 @@ public abstract class BaseWebSocketClient {
                 throw new RuntimeException(e1);
             }
 
+
             if (null == receive) {
                 continue;
             }
@@ -193,6 +194,10 @@ public abstract class BaseWebSocketClient {
         logger.debug("wait connection to stop");
 
         isConnected.await(1, TimeUnit.MINUTES);
+
+        if (!uncaughtExceptions.isEmpty()) {
+            throw new RuntimeException(uncaughtExceptions.get(0));
+        }
     }
 
 }
