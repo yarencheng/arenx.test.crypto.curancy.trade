@@ -2,6 +2,7 @@ package arenx.test.crypto.curancy.trade.poloniex;
 
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.PostConstruct;
@@ -28,17 +29,12 @@ public class PoloniexExchange implements ApiInterface {
     @Autowired
     private WampClient wampClient;
 
-    private AtomicBoolean isReady = new AtomicBoolean(false);
     private AtomicBoolean isReconnect = new AtomicBoolean(false);
     private Runnable reconnectListener;
     private OrderUpdateListener oderUpdateListener;
 
     @Override
     public void subscribeOrder(Set<Currency> currencies) {
-        if (!isReady.get()) {
-            throw new RuntimeException("client is not ready");
-        }
-
         String symbol = PoloniexUtils.toSymbol(currencies);
 
         logger.info("subscribe order of [{}]", symbol);
@@ -49,16 +45,23 @@ public class PoloniexExchange implements ApiInterface {
         .makeSubscription(symbol, Object.class)
         .subscribe(
             (ticker)->{
-                logger.info("symbol {} ", symbol, ticker);
+                logger.info("symbol {} {}", symbol, ticker);
             },
             (e)->{
-                logger.error("Failed to subscribe [{}]", e.getMessage());
-                e.printStackTrace();
+                logger.error("Failed to subscribe " + symbol, e);
             },
             ()->{
                 logger.info("subscribe order of [{}] sucessfully", symbol);
                 isDone.countDown();
             });
+
+        try {
+            if(!isDone.await(10, TimeUnit.MINUTES)){
+                throw new RuntimeException("Failed to subscribe " + symbol);
+            }
+        } catch (InterruptedException e1) {
+            throw new RuntimeException(e1);
+        }
     }
 
     @Override
@@ -74,7 +77,9 @@ public class PoloniexExchange implements ApiInterface {
     }
 
     @PostConstruct
-    private void start() {
+    private void start() throws InterruptedException {
+
+        CountDownLatch isConnected = new CountDownLatch(1);
 
         wampClient.statusChanged().subscribe((WampClient.State status)->{
 
@@ -85,11 +90,10 @@ public class PoloniexExchange implements ApiInterface {
                 }
             } else if (status instanceof WampClient.ConnectedState) {
                 logger.info("is connected to poloniex [{}]", status);
-                isReady.set(true);
+                isConnected.countDown();
             } else if (status instanceof WampClient.DisconnectedState) {
                 logger.info("disconnected from poloniex [{}]", status);
                 isReconnect.set(true);
-                isReady.set(false);
             } else {
                 String s = String.format("unknown status [%s]", status);
                 logger.error(s);
@@ -99,6 +103,12 @@ public class PoloniexExchange implements ApiInterface {
 
         logger.info("opening WAMP client");
         wampClient.open();
+
+        if (!isConnected.await(10, TimeUnit.MINUTES)) {
+            String s = "Failed to start client. timeout";
+            logger.error(s);
+            throw new RuntimeException(s);
+        }
     }
 
     @PreDestroy

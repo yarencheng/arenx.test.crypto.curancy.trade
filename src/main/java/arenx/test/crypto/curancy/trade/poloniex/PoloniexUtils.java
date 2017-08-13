@@ -21,7 +21,7 @@ public class PoloniexUtils {
         if (BTC_ZECs.equals(currencies)) {
             return "BTC_ZEC";
         } else if (BTC_ETHs.equals(currencies)) {
-            return "BTC_ET";
+            return "BTC_ETH";
         } else {
             throw new IllegalArgumentException(String.format("unsupport pair of currency [%s]", currencies));
         }

@@ -41,15 +41,7 @@ public class PoloniexExchangeIntegrationTest {
 
     @Test
     public void receive_2_book_message_in_10_seconds() throws InterruptedException{
-//        CountDownLatch count = new CountDownLatch(2);
-//
-//        api.setOrderUpdateListener(bean->{
-//            logger.debug("receive bean [{}]", bean);
-//            count.countDown();
-//        });
-//
-//        api.subscribeOrder(Sets.newHashSet(Currency.ETHEREUM, Currency.BITCOIN));
-//
-//        Assert.assertTrue(count.await(10, TimeUnit.SECONDS));
+
+
     }
 }
