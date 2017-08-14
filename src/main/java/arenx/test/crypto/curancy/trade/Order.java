@@ -13,6 +13,38 @@ public class Order {
 		ASK, BID;
 	}
 
+	public static class OrderKey implements Comparable<OrderKey>{
+
+        public String symbol;
+        public Order.Type type;
+        public double price;
+
+        public OrderKey(String symbol, Type type, double price) {
+            super();
+            this.symbol = symbol;
+            this.type = type;
+            this.price = price;
+        }
+
+        @Override
+        public int compareTo(OrderKey o) {
+            int r = Double.compare(price, o.price);
+
+            if (0 != r) {
+                return r;
+            }
+
+            r = type.compareTo(o.type);
+
+            if (0 != r) {
+                return r;
+            }
+
+            return symbol.compareTo(o.symbol);
+        }
+
+    }
+
 	@PrimaryKey
 	@Persistent(valueStrategy=IdGeneratorStrategy.IDENTITY)
 	private Long id;

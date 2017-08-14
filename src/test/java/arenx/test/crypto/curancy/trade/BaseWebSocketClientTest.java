@@ -100,7 +100,7 @@ public class BaseWebSocketClientTest {
 
         BaseWebSocketClient c = spy(new BaseWebSocketClient(){
             @Override
-            protected void onMessageReceive(CharSequence message) {
+            protected void onMessageReceive(String message) {
                 rm.add(message);
             }
 

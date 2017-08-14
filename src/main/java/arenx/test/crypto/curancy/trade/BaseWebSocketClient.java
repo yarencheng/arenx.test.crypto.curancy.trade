@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -31,6 +31,44 @@ import org.springframework.web.socket.client.WebSocketConnectionManager;
 @Scope("prototype")
 public abstract class BaseWebSocketClient {
 
+    public enum Status{
+        IDLE,
+        PRE_START,
+        STARTED,
+        RECONNECT,
+        PRE_STOP,
+        STOPPED
+    }
+
+    public static class WebSocketClientException extends Exception{
+
+        public WebSocketClientException() {
+            super();
+            // TODO Auto-generated constructor stub
+        }
+
+        public WebSocketClientException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+            super(message, cause, enableSuppression, writableStackTrace);
+            // TODO Auto-generated constructor stub
+        }
+
+        public WebSocketClientException(String message, Throwable cause) {
+            super(message, cause);
+            // TODO Auto-generated constructor stub
+        }
+
+        public WebSocketClientException(String message) {
+            super(message);
+            // TODO Auto-generated constructor stub
+        }
+
+        public WebSocketClientException(Throwable cause) {
+            super(cause);
+            // TODO Auto-generated constructor stub
+        }
+
+    }
+
     private static Logger logger = LoggerFactory.getLogger(BaseWebSocketClient.class);
 
     @Autowired
@@ -41,6 +79,10 @@ public abstract class BaseWebSocketClient {
     private List<Throwable> uncaughtExceptions = Collections.synchronizedList(new ArrayList<>());
     private AtomicReference<WebSocketConnectionManager> wsm = new AtomicReference<>();
     private AtomicReference<WebSocketSession> ws = new AtomicReference<>();
+    private volatile Status status;
+    private AtomicReferenceFieldUpdater<BaseWebSocketClient, Status> atomicStatus = AtomicReferenceFieldUpdater.newUpdater(BaseWebSocketClient.class, Status.class, "status");
+    private Thread sendWsWorkerThread;
+    private Thread receiveWsWorkerThread;
 
     private Runnable sendWsWorker = ()->{
 
@@ -51,7 +93,7 @@ public abstract class BaseWebSocketClient {
             TextMessage send = null;
 
             try {
-                if (null == ws) {
+                if (null == ws.get()) {
                     Thread.sleep(1000);
                     continue;
                 }
@@ -110,7 +152,11 @@ public abstract class BaseWebSocketClient {
         logger.info("Worker stops to receive message from [{}]", getURI());
     };
 
-    protected abstract void onMessageReceive(CharSequence message);
+    protected BaseWebSocketClient(){
+        atomicStatus.set(this, Status.IDLE);
+    }
+
+    protected abstract void onMessageReceive(String message) throws Exception;
     protected abstract URI getURI();
 
     protected void sendMessage(CharSequence message) {
@@ -125,9 +171,91 @@ public abstract class BaseWebSocketClient {
     }
 
     @PostConstruct
-    private void start() {
+    private void start() throws WebSocketClientException {
+        if (!atomicStatus.compareAndSet(this, Status.IDLE, Status.PRE_START)) {
+            throw new WebSocketClientException(String.format("Can't start client when status is not idle instead of ", atomicStatus.get(this)));
+        }
+
         logger.info("start client of [{}]", getURI());
 
+        WebSocketConnectionManager w = createWebSocketConnectionManager();
+
+        w.start();
+
+        wsm.set(w);
+
+        sendWsWorkerThread = new Thread(sendWsWorker, String.format("SendWorker[%s]",getURI()));
+        sendWsWorkerThread.setUncaughtExceptionHandler((thread, e)->{
+            logger.error("something was wrong in [" + thread.getName() + "]", e);
+            uncaughtExceptions.add(e);
+        });
+
+        receiveWsWorkerThread = new Thread(receiveWsWorker, String.format("ReceiveWorker[%s]",getURI()));
+        receiveWsWorkerThread.setUncaughtExceptionHandler((thread, e)->{
+            logger.error("something was wrong in [" + thread.getName() + "]", e);
+            uncaughtExceptions.add(e);
+        });
+
+        sendWsWorkerThread.start();
+        receiveWsWorkerThread.start();
+
+        atomicStatus.set(this, Status.STARTED);
+    }
+
+    @PreDestroy
+    private void stop() throws WebSocketClientException{
+        if (!atomicStatus.compareAndSet(this, Status.STARTED, Status.PRE_STOP)) {
+            throw new WebSocketClientException(String.format("Can't start client when status is not started instead of ", atomicStatus.get(this)));
+        }
+
+        logger.info("stop client of [{}]", getURI());
+
+        wsm.get().stop();
+
+        atomicStatus.set(this, Status.STOPPED);
+    }
+
+    protected void reconnect() throws WebSocketClientException, InterruptedException{
+        if (!atomicStatus.compareAndSet(this, Status.STARTED, Status.RECONNECT)) {
+            throw new WebSocketClientException(String.format("Can't reconnect client when status is not started instead of ", atomicStatus.get(this)));
+        }
+
+        logger.info("Disconnect from [{}]", getURI());
+
+        logger.info("Stop WebSocketConnectionManager");
+        wsm.get().stop();
+
+        logger.info("join thread [{}]", sendWsWorkerThread.getName());
+        sendWsWorkerThread.join();
+
+        logger.info("join thread [{}]", receiveWsWorkerThread.getName());
+        receiveWsWorkerThread.join();
+
+        logger.info("restart client of [{}]", getURI());
+
+        WebSocketConnectionManager w = createWebSocketConnectionManager();
+        w.start();
+        wsm.set(w);
+
+        sendWsWorkerThread = new Thread(sendWsWorker, String.format("SendWorker[%s]",getURI()));
+        sendWsWorkerThread.setUncaughtExceptionHandler((thread, e)->{
+            logger.error("something was wrong in [" + thread.getName() + "]", e);
+            uncaughtExceptions.add(e);
+        });
+
+        receiveWsWorkerThread = new Thread(receiveWsWorker, String.format("ReceiveWorker[%s]",getURI()));
+        receiveWsWorkerThread.setUncaughtExceptionHandler((thread, e)->{
+            logger.error("something was wrong in [" + thread.getName() + "]", e);
+            uncaughtExceptions.add(e);
+        });
+
+        sendWsWorkerThread.start();
+        receiveWsWorkerThread.start();
+
+        atomicStatus.set(this, Status.STARTED);
+    }
+
+    private WebSocketConnectionManager createWebSocketConnectionManager(){
         WebSocketConnectionManager w = new WebSocketConnectionManager(
                 webSocketClient,
                 new WebSocketHandler(){
@@ -162,42 +290,6 @@ public abstract class BaseWebSocketClient {
                     }},
                 getURI().toString()
             );
-
-        w.start();
-
-        wsm.set(w);
-
-        Thread sendWsWorkerThread = new Thread(sendWsWorker, String.format("SendWorker[%s]",getURI()));
-        sendWsWorkerThread.setUncaughtExceptionHandler((thread, e)->{
-            logger.error("something was wrong in [" + thread.getName() + "]", e);
-            uncaughtExceptions.add(e);
-        });
-
-        Thread receiveWsWorkerThread = new Thread(receiveWsWorker, String.format("ReceiveWorker[%s]",getURI()));
-        receiveWsWorkerThread.setUncaughtExceptionHandler((thread, e)->{
-            logger.error("something was wrong in [" + thread.getName() + "]", e);
-            uncaughtExceptions.add(e);
-        });
-
-        sendWsWorkerThread.start();
-        receiveWsWorkerThread.start();
+        return w;
     }
-
-    @PreDestroy
-    private void stop() throws InterruptedException{
-        logger.info("stop client of [{}]", getURI());
-
-        CountDownLatch isConnected = new CountDownLatch(1);
-
-        wsm.get().stop(()->isConnected.countDown());
-
-        logger.debug("wait connection to stop");
-
-        isConnected.await(1, TimeUnit.MINUTES);
-
-        if (!uncaughtExceptions.isEmpty()) {
-            throw new RuntimeException(uncaughtExceptions.get(0));
-        }
-    }
-
 }
