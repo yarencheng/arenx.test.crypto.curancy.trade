@@ -8,8 +8,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +24,7 @@ import arenx.test.crypto.curancy.trade.BaseWebSocketClient;
 import arenx.test.crypto.curancy.trade.Currency;
 import arenx.test.crypto.curancy.trade.Order;
 import arenx.test.crypto.curancy.trade.Order.OrderKey;
-import arenx.test.crypto.curancy.trade.TestIIIII;
+import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 
 @Component
 @Scope("prototype")
@@ -74,12 +72,7 @@ public class Bitfinex extends BaseWebSocketClient{
             .put("length", 25);
 
     @Autowired
-    private List<TestIIIII> sss;
-
-    @PostConstruct
-    private void start(){
-        logger.error("sss {}", sss);
-    }
+    private List<OrderUpdateListener> orderUpdateListeners;
 
     @Override
     protected void onMessageReceive(String message) throws Exception {
@@ -165,6 +158,7 @@ public class Bitfinex extends BaseWebSocketClient{
         double amount = node.get(2).asDouble();
 
         OrderKey key = null;
+        Order order = null;
 
         if (0 == count) {
             if (1 == amount) {
@@ -175,7 +169,8 @@ public class Bitfinex extends BaseWebSocketClient{
                 throw new RuntimeException("invalid data");
             }
 
-            orders.remove(key);
+            order = orders.remove(key);
+            order.setVolume(0.0);
 
         } else if (0 < count) {
             if (0 < amount) {
@@ -186,25 +181,27 @@ public class Bitfinex extends BaseWebSocketClient{
                 throw new RuntimeException("invalid data");
             }
 
-            Order old = orders.get(key);
+            order = orders.get(key);
 
-            if (null == old) {
-                old = new Order();
-                old.setExchange("bitfinex");
-                old.setFromCurrency(currencies.get(0));
-                old.setToCurrency(currencies.get(1));
-                old.setPrice(price);
-                old.setType(key.type);
-                old.setVolume(0.0);
-                orders.put(key, old);
+            if (null == order) {
+                order = new Order();
+                order.setExchange("bitfinex");
+                order.setFromCurrency(currencies.get(0));
+                order.setToCurrency(currencies.get(1));
+                order.setPrice(price);
+                order.setType(key.type);
+                order.setVolume(0.0);
+                orders.put(key, order);
             }
 
-            old.setVolume(old.getVolume() + Math.abs(amount));
+            order.setVolume(order.getVolume() + Math.abs(amount));
 
         } else {
             throw new RuntimeException("invalid data");
         }
 
+        Order o = order;
+        orderUpdateListeners.forEach(l->l.OnUpdate(o));
     }
 
     private void handleEvent(JsonNode node) throws BitfinexException{

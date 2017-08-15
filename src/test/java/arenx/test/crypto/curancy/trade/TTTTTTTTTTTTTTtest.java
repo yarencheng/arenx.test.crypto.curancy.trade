@@ -6,9 +6,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CodePointCharStream;
-import org.antlr.v4.runtime.CommonTokenStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
@@ -21,9 +18,6 @@ import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.WebSocketConnectionManager;
 import org.springframework.web.socket.client.jetty.JettyWebSocketClient;
 
-import arenx.test.crypto.curancy.trade.antlr4.BitfinexLexer;
-import arenx.test.crypto.curancy.trade.antlr4.BitfinexParser;
-import arenx.test.crypto.curancy.trade.bitfinex.ChannelBean;
 import ws.wamp.jawampa.WampClient;
 import ws.wamp.jawampa.WampClientBuilder;
 import ws.wamp.jawampa.transport.netty.NettyWampClientConnectorProvider;
@@ -339,23 +333,23 @@ public class TTTTTTTTTTTTTTtest {
 	}
 
 //	@Test
-	public void adasssd(){
-
-	    CodePointCharStream antlrInputStream = CharStreams.fromString("[123,[4.56,7,8]]");
-//	    CodePointCharStream antlrInputStream = CharStreams.fromString("[123,[4]]");
-	    BitfinexLexer lexer = new BitfinexLexer(antlrInputStream);
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-
-        System.out.println();
-
-        BitfinexParser parser = new BitfinexParser(tokens);
-
-        ChannelBean bean = parser.channel().bean;
-
-        System.out.println("bean = " + bean);
-
-        System.out.println();
-
-	}
+//	public void adasssd(){
+//
+//	    CodePointCharStream antlrInputStream = CharStreams.fromString("[123,[4.56,7,8]]");
+////	    CodePointCharStream antlrInputStream = CharStreams.fromString("[123,[4]]");
+//	    BitfinexLexer lexer = new BitfinexLexer(antlrInputStream);
+//        CommonTokenStream tokens = new CommonTokenStream(lexer);
+//
+//        System.out.println();
+//
+//        BitfinexParser parser = new BitfinexParser(tokens);
+//
+//        ChannelBean bean = parser.channel().bean;
+//
+//        System.out.println("bean = " + bean);
+//
+//        System.out.println();
+//
+//	}
 
 }
