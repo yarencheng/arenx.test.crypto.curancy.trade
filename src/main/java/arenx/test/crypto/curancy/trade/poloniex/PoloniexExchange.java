@@ -15,14 +15,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import arenx.test.crypto.curancy.trade.ApiInterface;
 import arenx.test.crypto.curancy.trade.Currency;
 import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 import ws.wamp.jawampa.WampClient;
 
 @Component
 @Scope("prototype")
-public class PoloniexExchange implements ApiInterface {
+public class PoloniexExchange {
 
     private static Logger logger = LoggerFactory.getLogger(PoloniexExchange.class);
 
@@ -33,7 +32,7 @@ public class PoloniexExchange implements ApiInterface {
     private Runnable reconnectListener;
     private OrderUpdateListener oderUpdateListener;
 
-    @Override
+
     public void subscribeOrder(Set<Currency> currencies) {
         String symbol = PoloniexUtils.toSymbol(currencies);
 
@@ -64,13 +63,12 @@ public class PoloniexExchange implements ApiInterface {
         }
     }
 
-    @Override
+
     public void setOrderUpdateListener(OrderUpdateListener listener) {
         Validate.notNull(listener);
         oderUpdateListener = listener;
     }
 
-    @Override
     public void setReconnectListener(Runnable listener) {
         Validate.notNull(listener);
         reconnectListener = listener;

@@ -11,6 +11,8 @@ import arenx.test.crypto.curancy.trade.Currency;
 
 public class BitfniexUtils {
 
+    public static final String Bitfniex = "Bitfniex";
+
     public static final Set<Currency> tZECBTCs = Sets.immutableEnumSet(Currency.ZECASH, Currency.BITCOIN);
     public static final Set<Currency> tETHBTCs = Sets.immutableEnumSet(Currency.ETHEREUM, Currency.BITCOIN);
 

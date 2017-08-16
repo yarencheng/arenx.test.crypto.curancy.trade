@@ -106,12 +106,7 @@ public class BaseWebSocketClientTest {
 
             @Override
             protected URI getURI() {
-                // TODO Auto-generated method stub
-                try {
-                    return new URI("wss://test.test");
-                } catch (URISyntaxException e) {
-                    throw new RuntimeException(e);
-                }
+                return URI.create("wss://test.test");
             }});
 
         return c;
@@ -119,6 +114,9 @@ public class BaseWebSocketClientTest {
 
     @Autowired
     BaseWebSocketClient baseWebSocketClient;
+
+    @Autowired
+    WebSocketClient webSocketClient;
 
     @Autowired
     WebSocketSession session;
@@ -139,5 +137,12 @@ public class BaseWebSocketClientTest {
     public void onMessageReceive() throws Exception{
         wsHandler.getValue().handleMessage(session, new TextMessage("aaa"));
         Assert.assertEquals("aaa", receivedMessages.pollLast(10, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void reconnect() throws Exception{
+        baseWebSocketClient.reconnect();
+
+        verify(webSocketClient, timeout(10000).times(2)).doHandshake(any(), any(), any(URI.class));
     }
 }

@@ -30,35 +30,6 @@ import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 @Scope("prototype")
 public class Bitfinex extends BaseWebSocketClient{
 
-    public static class BitfinexException extends Exception{
-
-        public BitfinexException() {
-            super();
-            // TODO Auto-generated constructor stub
-        }
-
-        public BitfinexException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-            super(message, cause, enableSuppression, writableStackTrace);
-            // TODO Auto-generated constructor stub
-        }
-
-        public BitfinexException(String message, Throwable cause) {
-            super(message, cause);
-            // TODO Auto-generated constructor stub
-        }
-
-        public BitfinexException(String message) {
-            super(message);
-            // TODO Auto-generated constructor stub
-        }
-
-        public BitfinexException(Throwable cause) {
-            super(cause);
-            // TODO Auto-generated constructor stub
-        }
-
-    }
-
     private static Logger logger = LoggerFactory.getLogger(Bitfinex.class);
 
     private SortedMap<OrderKey, Order> orders = new TreeMap<>();
@@ -125,7 +96,7 @@ public class Bitfinex extends BaseWebSocketClient{
         sendMessage(subscribe.toString());
     }
 
-    private void handleData(JsonNode node) throws BitfinexException{
+    protected void handleData(JsonNode node) throws BitfinexException{
 
         int id = node.get(0).asInt();
 
@@ -145,7 +116,7 @@ public class Bitfinex extends BaseWebSocketClient{
         }
     }
 
-    private void handleBookData(String symbol, JsonNode node){
+    protected void handleBookData(String symbol, JsonNode node){
         List<Currency> currencies = BitfniexUtils.toCurrencies(symbol);
 
         if (!node.get(0).isDouble()) {
@@ -185,7 +156,7 @@ public class Bitfinex extends BaseWebSocketClient{
 
             if (null == order) {
                 order = new Order();
-                order.setExchange("bitfinex");
+                order.setExchange(BitfniexUtils.Bitfniex);
                 order.setFromCurrency(currencies.get(0));
                 order.setToCurrency(currencies.get(1));
                 order.setPrice(price);
@@ -204,7 +175,7 @@ public class Bitfinex extends BaseWebSocketClient{
         orderUpdateListeners.forEach(l->l.OnUpdate(o));
     }
 
-    private void handleEvent(JsonNode node) throws BitfinexException{
+    protected void handleEvent(JsonNode node) throws BitfinexException{
         String event = node.get("event").asText();
 
         if ("info".equals(event)) {
@@ -222,11 +193,11 @@ public class Bitfinex extends BaseWebSocketClient{
         }
     }
 
-    private void handleInfoVersion(int version) throws BitfinexException{
+    protected void handleInfoVersion(int version) throws BitfinexException{
         logger.info("Connection version [{}]", version);
     }
 
-    private void handleInfo(int code, String message) throws BitfinexException{
+    protected void handleInfo(int code, String message) throws BitfinexException{
         switch (code) {
         case 20051:
             logger.error("TODO 20051");
@@ -242,7 +213,7 @@ public class Bitfinex extends BaseWebSocketClient{
         }
     }
 
-    private void handleSubscribed(String channel, int id, JsonNode node){
+    protected void handleSubscribed(String channel, int id, JsonNode node){
         if ("book".equals(channel)) {
             handleSubscribedBook(id, node);
             return;
@@ -251,7 +222,7 @@ public class Bitfinex extends BaseWebSocketClient{
         }
     }
 
-    private void handleSubscribedBook(int id, JsonNode node){
+    protected void handleSubscribedBook(int id, JsonNode node){
         String symbol = node.get("symbol").asText();
         logger.info("book {} is subscribed", symbol);
         subscribedBooks.put(id, node.get("symbol").asText());

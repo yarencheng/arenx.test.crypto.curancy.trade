@@ -32,6 +32,7 @@ public class OrderTest {
 			o.setPrice(123.0);
 			o.setType(Order.Type.ASK);
 			o.setVolume(23.0);
+			o.setUpdateNanoSeconds(System.nanoTime());
 
 			pm.makePersistent(o);
 		} finally {

@@ -71,7 +71,19 @@ public class Order {
 
 	@Persistent
 	@Column(allowsNull="false")
-	private Double volume;
+	private Long updateNanoSeconds;
+
+	public Long getUpdateNanoSeconds() {
+        return updateNanoSeconds;
+    }
+
+    public void setUpdateNanoSeconds(Long updateNanoSeconds) {
+        this.updateNanoSeconds = updateNanoSeconds;
+    }
+
+    @Persistent
+    @Column(allowsNull="false")
+    private Double volume;
 
 	public Currency getFromCurrency() {
 		return fromCurrency;
@@ -127,7 +139,8 @@ public class Order {
 
     @Override
     public String toString() {
-        return "Order [id=" + id + ", fromCurrency=" + fromCurrency + ", toCurrency=" + toCurrency + ", exchange=" + exchange + ", type=" + type + ", price=" + price + ", volume=" + volume + "]";
+        return "Order [id=" + id + ", fromCurrency=" + fromCurrency + ", toCurrency=" + toCurrency + ", exchange=" + exchange + ", type=" + type + ", price=" + price + ", updateNanoSeconds="
+                + updateNanoSeconds + ", volume=" + volume + "]";
     }
 
     @Override
