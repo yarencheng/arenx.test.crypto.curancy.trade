@@ -2,6 +2,7 @@ package arenx.test.crypto.curancy.trade.bitfinex;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -19,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Sets;
 
 import arenx.test.crypto.curancy.trade.BaseWebSocketClient;
 import arenx.test.crypto.curancy.trade.Currency;
@@ -31,6 +33,14 @@ import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 public class Bitfinex extends BaseWebSocketClient{
 
     private static Logger logger = LoggerFactory.getLogger(Bitfinex.class);
+
+    public static final String Bitfniex = "Bitfniex";
+
+    protected static final Set<Currency> tZECBTCs = Sets.immutableEnumSet(Currency.ZECASH, Currency.BITCOIN);
+    protected static final Set<Currency> tETHBTCs = Sets.immutableEnumSet(Currency.ETHEREUM, Currency.BITCOIN);
+
+    protected static final List<Currency> tZECBTCl = Collections.unmodifiableList(Arrays.asList(Currency.ZECASH, Currency.BITCOIN));
+    protected static final List<Currency> tETHBTCl = Collections.unmodifiableList(Arrays.asList(Currency.ETHEREUM, Currency.BITCOIN));
 
     private SortedMap<OrderKey, Order> orders = new TreeMap<>();
     private SortedMap<Integer, String> subscribedBooks = Collections.synchronizedSortedMap(new TreeMap<>());
@@ -89,7 +99,7 @@ public class Bitfinex extends BaseWebSocketClient{
         Validate.notNull(currencies);
         Validate.isTrue(currencies.size() == 2);
 
-        String symbol = BitfniexUtils.toSymbol(currencies);
+        String symbol = toSymbol(currencies);
 
         subscribe.put("symbol", symbol);
 
@@ -117,7 +127,7 @@ public class Bitfinex extends BaseWebSocketClient{
     }
 
     protected void handleBookData(String symbol, JsonNode node){
-        List<Currency> currencies = BitfniexUtils.toCurrencies(symbol);
+        List<Currency> currencies = toCurrencies(symbol);
 
         if (!node.get(0).isDouble()) {
             node.forEach(child->handleBookData(symbol, child));
@@ -156,7 +166,7 @@ public class Bitfinex extends BaseWebSocketClient{
 
             if (null == order) {
                 order = new Order();
-                order.setExchange(BitfniexUtils.Bitfniex);
+                order.setExchange(Bitfniex);
                 order.setFromCurrency(currencies.get(0));
                 order.setToCurrency(currencies.get(1));
                 order.setPrice(price);
@@ -226,5 +236,25 @@ public class Bitfinex extends BaseWebSocketClient{
         String symbol = node.get("symbol").asText();
         logger.info("book {} is subscribed", symbol);
         subscribedBooks.put(id, node.get("symbol").asText());
+    }
+
+    protected static String toSymbol(Set<Currency> currencies){
+        if (tZECBTCs.equals(currencies)) {
+            return "tZECBTC";
+        } else if (tETHBTCs.equals(currencies)) {
+            return "tETHBTC";
+        } else {
+            throw new IllegalArgumentException(String.format("unsupport pair of currency [%s]", currencies));
+        }
+    }
+
+    protected static List<Currency> toCurrencies(String symbol){
+        if ("tZECBTC".equals(symbol)) {
+            return tZECBTCl;
+        } else if ("tETHBTC".equals(symbol)) {
+            return tETHBTCl;
+        } else {
+            throw new IllegalArgumentException("unknown symbol [" + symbol + "]");
+        }
     }
 }
