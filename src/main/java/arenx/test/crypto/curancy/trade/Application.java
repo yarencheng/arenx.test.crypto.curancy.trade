@@ -28,8 +28,8 @@ public class Application {
 	public Set<Set<Currency>> get(){
 	    return new HashSet<>(
 	            Arrays.asList(
-	                    Sets.newHashSet(Currency.BITCOIN, Currency.ETHEREUM)
-//	                    Sets.newHashSet(Currency.BITCOIN, Currency.ZECASH)
+//	                    Sets.newHashSet(Currency.BITCOIN, Currency.ETHEREUM)
+	                    Sets.newHashSet(Currency.BITCOIN, Currency.ZECASH)
                 )
         );
 	}

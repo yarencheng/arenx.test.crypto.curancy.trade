@@ -166,6 +166,7 @@ public class Bitfinex extends BaseWebSocketClient{
 
             order = orders.remove(key);
             order.setVolume(0.0);
+            order.setUpdateNanoSeconds(System.nanoTime());
 
         } else if (0 < count) {
             if (0 < amount) {
@@ -194,6 +195,7 @@ public class Bitfinex extends BaseWebSocketClient{
             }
 
             order.setVolume(order.getVolume() + Math.abs(amount));
+            order.setUpdateNanoSeconds(System.nanoTime());
 
         } else {
             throw new RuntimeException("invalid data");

@@ -5,8 +5,10 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -52,7 +54,7 @@ public class Poloniex extends BaseWebSocketClient{
 
     private OrderKey key = new OrderKey(); // reused object
     private SortedMap<OrderKey, Order> orders = new TreeMap<>();
-    private Map<Integer, List<Currency>> channelToCurrency = new HashMap<>();
+    private Map<Integer, String> channelToSymbol = new HashMap<>();
     private ObjectMapper mapper = new ObjectMapper();
     private ObjectNode subscribe = mapper.createObjectNode()
             .put("command", "subscribe");
@@ -160,17 +162,17 @@ public class Poloniex extends BaseWebSocketClient{
 
     protected void handleTypeI(int id, JsonNode node) throws PoloniexException{
         JsonNode data = node.get(1);
-        String currencyPair = data.get("currencyPair").asText();
-        List<Currency> currencies = toCurrencies(currencyPair);
+        String symbol = data.get("currencyPair").asText();
+        List<Currency> currencies = toCurrencies(symbol);
         ArrayNode orderBook = (ArrayNode) data.get("orderBook");
         ObjectNode bids = (ObjectNode) orderBook.get(0);
         ObjectNode asks = (ObjectNode) orderBook.get(1);
 
-        channelToCurrency.put(id, currencies);
+        channelToSymbol.put(id, symbol);
 
         // remove old orders
         orders = orders.entrySet().stream()
-            .filter(e->!e.getKey().symbol.equals(currencyPair))
+            .filter(e->!e.getKey().symbol.equals(symbol))
             .collect(Collectors.toMap(
                     e->e.getKey(),
                     e->e.getValue(),
@@ -181,28 +183,84 @@ public class Poloniex extends BaseWebSocketClient{
                     TreeMap::new
             ));
 
-        for (JsonNode n: bids){
-            logger.error("n: {}", n);
+        for (Iterator<Entry<String, JsonNode>> iterator = bids.fields(); iterator.hasNext();){
+            Entry<String, JsonNode> e = iterator.next();
+            double price = Double.parseDouble(e.getKey());
 
-//            Order order = new Order();
-//            order.setExchange(Poloniex);
-//            order.setFromCurrency(currencies.get(0));
-//            order.setToCurrency(currencies.get(1));
-//            order.setPrice(n.);
-//            order.setType(key.type);
-//            order.setVolume(0.0);
-//            orders.put(key, order);
+            Order order = new Order();
+            order.setExchange(Poloniex);
+            order.setFromCurrency(currencies.get(0));
+            order.setToCurrency(currencies.get(1));
+            order.setPrice(price);
+            order.setType(Order.Type.BID);
+            order.setVolume(e.getValue().asDouble());
 
+            Order.OrderKey key = new Order.OrderKey(symbol, Order.Type.BID, price);
+            orders.put(key, order);
 
-            break;
+            order.setUpdateNanoSeconds(System.nanoTime());
+            orderUpdateListeners.forEach(u->u.OnUpdate(order));
+        }
+
+        for (Iterator<Entry<String, JsonNode>> iterator = asks.fields(); iterator.hasNext();){
+            Entry<String, JsonNode> e = iterator.next();
+            double price = Double.parseDouble(e.getKey());
+
+            Order order = new Order();
+            order.setExchange(Poloniex);
+            order.setFromCurrency(currencies.get(0));
+            order.setToCurrency(currencies.get(1));
+            order.setPrice(price);
+            order.setType(Order.Type.ASK);
+            order.setVolume(e.getValue().asDouble());
+            order.setUpdateNanoSeconds(System.nanoTime());
+
+            Order.OrderKey key = new Order.OrderKey(symbol, Order.Type.ASK, price);
+            orders.put(key, order);
+
+            orderUpdateListeners.forEach(u->u.OnUpdate(order));
         }
     }
 
-    protected void handleTypeO(int id, JsonNode node){
-        logger.error("node: {}", node);
+    protected void handleTypeO(int id, JsonNode node) throws PoloniexException{
+        String symbol = channelToSymbol.get(id);
+        int type = node.get(1).asInt();
+        double price = node.get(2).asDouble();
+        double volume = node.get(3).asDouble();
+
+        key.symbol = symbol;
+        key.price = price;
+        key.type = 0 == type ? Order.Type.BID : Order.Type.ASK;
+
+        Order order = null;
+
+        if (0.0 == volume) {
+            order = orders.remove(key);
+        } else {
+            order = orders.get(key);
+        }
+
+        if (null == order && 0.0 != volume) {
+            List<Currency> currencies = toCurrencies(symbol);
+
+            order = new Order();
+            order.setExchange(Poloniex);
+            order.setFromCurrency(currencies.get(0));
+            order.setToCurrency(currencies.get(1));
+            order.setPrice(price);
+            order.setType(Order.Type.ASK);
+
+            orders.put(key.copy(), order);
+        }
+
+        order.setUpdateNanoSeconds(System.nanoTime());
+        order.setVolume(volume);
+
+        Order o = order;
+        orderUpdateListeners.forEach(u->u.OnUpdate(o));
     }
 
     protected void handleTypeT(int id, JsonNode node){
-        logger.error("node: {}", node);
+        // trade
     }
 }
