@@ -111,6 +111,10 @@ public abstract class BaseWebSocketClient {
                 continue;
             }
 
+            if (logger.isDebugEnabled()) {
+                logger.info("receive message from [{}] [{}]", getURI(), receive.getPayload());
+            }
+
             try {
                 onMessageReceive(receive.getPayload());
             } catch (Throwable e) {

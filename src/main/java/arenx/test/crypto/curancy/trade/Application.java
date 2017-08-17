@@ -1,5 +1,7 @@
 package arenx.test.crypto.curancy.trade;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -24,16 +26,20 @@ public class Application {
 
 	@Bean(name = "monitoredCurrency")
 	public Set<Set<Currency>> get(){
-		return Sets.newHashSet(
-			Sets.newHashSet(Currency.BITCOIN, Currency.ETHEREUM),
-			Sets.newHashSet(Currency.BITCOIN, Currency.ZECASH)
-		);
+	    return new HashSet<>(
+	            Arrays.asList(
+	                    Sets.newHashSet(Currency.BITCOIN, Currency.ETHEREUM)
+//	                    Sets.newHashSet(Currency.BITCOIN, Currency.ZECASH)
+                )
+        );
 	}
 
 	@Bean(name = "webSocketClient")
 	@Scope("prototype")
     public WebSocketClient getWebSocketClient(){
-        return new JettyWebSocketClient();
+	    org.eclipse.jetty.websocket.client.WebSocketClient c = new org.eclipse.jetty.websocket.client.WebSocketClient();
+	    c.getPolicy().setMaxTextMessageSize(1024*1024);
+        return new JettyWebSocketClient(c);
     }
 
 	@Bean(name = "wampClient")

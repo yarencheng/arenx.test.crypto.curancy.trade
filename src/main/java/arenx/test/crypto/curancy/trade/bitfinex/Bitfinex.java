@@ -9,10 +9,13 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import javax.annotation.PostConstruct;
+
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -30,11 +33,12 @@ import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 
 @Component
 @Scope("prototype")
+@Lazy
 public class Bitfinex extends BaseWebSocketClient{
 
     private static Logger logger = LoggerFactory.getLogger(Bitfinex.class);
 
-    public static final String Bitfniex = "Bitfniex";
+    public static final String Bitfinex = "Bitfinex";
 
     protected static final Set<Currency> tZECBTCs = Sets.immutableEnumSet(Currency.ZECASH, Currency.BITCOIN);
     protected static final Set<Currency> tETHBTCs = Sets.immutableEnumSet(Currency.ETHEREUM, Currency.BITCOIN);
@@ -42,6 +46,7 @@ public class Bitfinex extends BaseWebSocketClient{
     protected static final List<Currency> tZECBTCl = Collections.unmodifiableList(Arrays.asList(Currency.ZECASH, Currency.BITCOIN));
     protected static final List<Currency> tETHBTCl = Collections.unmodifiableList(Arrays.asList(Currency.ETHEREUM, Currency.BITCOIN));
 
+    private OrderKey key = new OrderKey(); // reused object
     private SortedMap<OrderKey, Order> orders = new TreeMap<>();
     private SortedMap<Integer, String> subscribedBooks = Collections.synchronizedSortedMap(new TreeMap<>());
     private ObjectMapper mapper = new ObjectMapper();
@@ -55,12 +60,11 @@ public class Bitfinex extends BaseWebSocketClient{
     @Autowired
     private List<OrderUpdateListener> orderUpdateListeners;
 
+    @Autowired
+    private Set<Set<Currency>> monitoredCurrency;
+
     @Override
     protected void onMessageReceive(String message) throws Exception {
-        if (logger.isDebugEnabled()) {
-            logger.info("receive message from Bitfinex [{}]", message);
-        }
-
         JsonNode node = null;
 
         try {
@@ -95,11 +99,18 @@ public class Bitfinex extends BaseWebSocketClient{
         return URI.create("wss://api.bitfinex.com/ws/2");
     }
 
-    public void subscribeOrder(Set<Currency> currencies){
+    @PostConstruct
+    private void start(){
+        monitoredCurrency.forEach(c->subscribeOrder(c));
+    }
+
+    protected void subscribeOrder(Set<Currency> currencies){
         Validate.notNull(currencies);
         Validate.isTrue(currencies.size() == 2);
 
         String symbol = toSymbol(currencies);
+
+        logger.info("subscribe [{}]", symbol);
 
         subscribe.put("symbol", symbol);
 
@@ -138,14 +149,17 @@ public class Bitfinex extends BaseWebSocketClient{
         int count = node.get(1).asInt();
         double amount = node.get(2).asDouble();
 
-        OrderKey key = null;
         Order order = null;
 
         if (0 == count) {
             if (1 == amount) {
-                key = new OrderKey(symbol, Order.Type.BID, price);
+                key.symbol = symbol;
+                key.type = Order.Type.BID;
+                key.price = price;
             } else if (-1 == amount) {
-                key = new OrderKey(symbol, Order.Type.ASK, price);
+                key.symbol = symbol;
+                key.type = Order.Type.ASK;
+                key.price = price;
             } else {
                 throw new RuntimeException("invalid data");
             }
@@ -155,9 +169,13 @@ public class Bitfinex extends BaseWebSocketClient{
 
         } else if (0 < count) {
             if (0 < amount) {
-                key = new OrderKey(symbol, Order.Type.BID, price);
+                key.symbol = symbol;
+                key.type = Order.Type.BID;
+                key.price = price;
             } else if (0 > amount) {
-                key = new OrderKey(symbol, Order.Type.ASK, price);
+                key.symbol = symbol;
+                key.type = Order.Type.ASK;
+                key.price = price;
             } else {
                 throw new RuntimeException("invalid data");
             }
@@ -166,13 +184,13 @@ public class Bitfinex extends BaseWebSocketClient{
 
             if (null == order) {
                 order = new Order();
-                order.setExchange(Bitfniex);
+                order.setExchange(Bitfinex);
                 order.setFromCurrency(currencies.get(0));
                 order.setToCurrency(currencies.get(1));
                 order.setPrice(price);
                 order.setType(key.type);
                 order.setVolume(0.0);
-                orders.put(key, order);
+                orders.put(key.copy(), order);
             }
 
             order.setVolume(order.getVolume() + Math.abs(amount));

@@ -19,6 +19,10 @@ public class Order {
         public Order.Type type;
         public double price;
 
+        public OrderKey(){
+
+        }
+
         public OrderKey(String symbol, Type type, double price) {
             super();
             this.symbol = symbol;
@@ -41,6 +45,10 @@ public class Order {
             }
 
             return symbol.compareTo(o.symbol);
+        }
+
+        public OrderKey copy(){
+            return new OrderKey(symbol, type, price);
         }
 
     }
