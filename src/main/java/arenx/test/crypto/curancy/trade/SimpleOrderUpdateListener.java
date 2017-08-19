@@ -12,13 +12,13 @@ public class SimpleOrderUpdateListener implements OrderUpdateListener{
     private static Logger logger = LoggerFactory.getLogger(SimpleOrderUpdateListener.class);
 
     @Override
-    public void update(String ex, Action action, Type type, double price, double volume) {
-        logger.info("{} {} {} {} {}", ex, action, type, price, volume);
+    public void update(String ex, Action action, OrderType type, double price, double volume) {
+//        logger.info("{} {} {} {} {}", ex, action, type, price, volume);
     }
 
     @Override
     public void removeAll(String ex){
-        logger.info("{}", ex);
+//        logger.info("{}", ex);
     }
 
 }

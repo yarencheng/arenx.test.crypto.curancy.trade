@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import arenx.test.crypto.curancy.trade.BaseWebSocketClient;
 import arenx.test.crypto.curancy.trade.Currency;
+import arenx.test.crypto.curancy.trade.OrderType;
 import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 
 @Component
@@ -169,7 +170,7 @@ public class Poloniex extends BaseWebSocketClient{
 
             price = reversSymbol ? (1/price) : price;
             volume = reversSymbol ? (volume/price) : volume;
-            OrderUpdateListener.Type type = reversSymbol ? OrderUpdateListener.Type.ASK : OrderUpdateListener.Type.BID;
+            OrderType type = reversSymbol ? OrderType.ASK : OrderType.BID;
 
             for (OrderUpdateListener updater: orderUpdateListeners) {
                 updater.update(Poloniex, OrderUpdateListener.Action.UPDATE, type, price, volume);
@@ -183,7 +184,7 @@ public class Poloniex extends BaseWebSocketClient{
 
             price = reversSymbol ? (1/price) : price;
             volume = reversSymbol ? (volume/price) : volume;
-            OrderUpdateListener.Type type = reversSymbol ? OrderUpdateListener.Type.BID : OrderUpdateListener.Type.ASK;
+            OrderType type = reversSymbol ? OrderType.BID : OrderType.ASK;
 
             for (OrderUpdateListener updater: orderUpdateListeners) {
                 updater.update(Poloniex, OrderUpdateListener.Action.UPDATE, type, price, volume);
@@ -197,9 +198,9 @@ public class Poloniex extends BaseWebSocketClient{
         double volume = node.get(3).asDouble();
 
         OrderUpdateListener.Action action;
-        OrderUpdateListener.Type oType = 0 == type
-                ? reversSymbol ? OrderUpdateListener.Type.ASK : OrderUpdateListener.Type.BID
-                : reversSymbol ? OrderUpdateListener.Type.BID : OrderUpdateListener.Type.ASK;
+        OrderType oType = 0 == type
+                ? reversSymbol ? OrderType.ASK : OrderType.BID
+                : reversSymbol ? OrderType.BID : OrderType.ASK;
 
         if (0.0 == volume) {
             action = OrderUpdateListener.Action.REMOVE;

@@ -9,23 +9,18 @@ import javax.jdo.annotations.PrimaryKey;
 @PersistenceCapable
 public class Order {
 
-	public enum Type{
-		ASK, BID;
-	}
-
 	public static class OrderKey implements Comparable<OrderKey>{
 
-        public String symbol;
-        public Order.Type type;
+	    public String exchange;
+        public OrderType type;
         public double price;
 
         public OrderKey(){
 
         }
 
-        public OrderKey(String symbol, Type type, double price) {
-            super();
-            this.symbol = symbol;
+        public OrderKey(String exchange, OrderType type, double price) {
+            this.exchange = exchange;
             this.type = type;
             this.price = price;
         }
@@ -44,26 +39,28 @@ public class Order {
                 return r;
             }
 
-            return symbol.compareTo(o.symbol);
+            return exchange.compareTo(o.exchange);
         }
 
         public OrderKey copy(){
-            return new OrderKey(symbol, type, price);
+            return new OrderKey(exchange, type, price);
         }
 
     }
 
-	@PrimaryKey
+
+
+	public Order(String exchange, OrderType type, Double price, Double volume, Long updateMilliSeconds) {
+        this.exchange = exchange;
+        this.type = type;
+        this.price = price;
+        this.updateMilliSeconds = updateMilliSeconds;
+        this.volume = volume;
+    }
+
+    @PrimaryKey
 	@Persistent(valueStrategy=IdGeneratorStrategy.IDENTITY)
 	private Long id;
-
-	@Persistent
-	@Column(allowsNull="false")
-	private Currency fromCurrency;
-
-	@Persistent
-	@Column(allowsNull="false")
-	private Currency toCurrency;
 
 	@Persistent
 	@Column(allowsNull="false")
@@ -71,7 +68,7 @@ public class Order {
 
 	@Persistent
 	@Column(allowsNull="false")
-	private Type type;
+	private OrderType type;
 
 	@Persistent
 	@Column(allowsNull="false")
@@ -79,76 +76,59 @@ public class Order {
 
 	@Persistent
 	@Column(allowsNull="false")
-	private Long updateNanoSeconds;
-
-	public Long getUpdateNanoSeconds() {
-        return updateNanoSeconds;
-    }
-
-    public void setUpdateNanoSeconds(Long updateNanoSeconds) {
-        this.updateNanoSeconds = updateNanoSeconds;
-    }
+	private Long updateMilliSeconds;
 
     @Persistent
     @Column(allowsNull="false")
     private Double volume;
 
-	public Currency getFromCurrency() {
-		return fromCurrency;
-	}
+    public String getExchange() {
+        return exchange;
+    }
 
-	public void setFromCurrency(Currency fromCurrency) {
-		this.fromCurrency = fromCurrency;
-	}
+    public void setExchange(String exchange) {
+        this.exchange = exchange;
+    }
 
-	public Currency getToCurrency() {
-		return toCurrency;
-	}
+    public OrderType getType() {
+        return type;
+    }
 
-	public void setToCurrency(Currency toCurrency) {
-		this.toCurrency = toCurrency;
-	}
+    public void setType(OrderType type) {
+        this.type = type;
+    }
 
-	public String getExchange() {
-		return exchange;
-	}
+    public Double getPrice() {
+        return price;
+    }
 
-	public void setExchange(String exchange) {
-		this.exchange = exchange;
-	}
+    public void setPrice(Double price) {
+        this.price = price;
+    }
 
-	public Type getType() {
-		return type;
-	}
+    public Long getUpdateMilliSeconds() {
+        return updateMilliSeconds;
+    }
 
-	public void setType(Type type) {
-		this.type = type;
-	}
+    public void setUpdateMilliSeconds(Long updateMilliSeconds) {
+        this.updateMilliSeconds = updateMilliSeconds;
+    }
 
-	public Double getPrice() {
-		return price;
-	}
+    public Double getVolume() {
+        return volume;
+    }
 
-	public void setPrice(Double price) {
-		this.price = price;
-	}
+    public void setVolume(Double volume) {
+        this.volume = volume;
+    }
 
-	public Double getVolume() {
-		return volume;
-	}
-
-	public void setVolume(Double volume) {
-		this.volume = volume;
-	}
-
-	public Long getId() {
-		return id;
-	}
+    public Long getId() {
+        return id;
+    }
 
     @Override
     public String toString() {
-        return "Order [id=" + id + ", fromCurrency=" + fromCurrency + ", toCurrency=" + toCurrency + ", exchange=" + exchange + ", type=" + type + ", price=" + price + ", updateNanoSeconds="
-                + updateNanoSeconds + ", volume=" + volume + "]";
+        return "Order [id=" + id + ", exchange=" + exchange + ", type=" + type + ", price=" + price + ", updateMilliSeconds=" + updateMilliSeconds + ", volume=" + volume + "]";
     }
 
     @Override
@@ -156,11 +136,10 @@ public class Order {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((exchange == null) ? 0 : exchange.hashCode());
-        result = prime * result + ((fromCurrency == null) ? 0 : fromCurrency.hashCode());
         result = prime * result + ((id == null) ? 0 : id.hashCode());
         result = prime * result + ((price == null) ? 0 : price.hashCode());
-        result = prime * result + ((toCurrency == null) ? 0 : toCurrency.hashCode());
         result = prime * result + ((type == null) ? 0 : type.hashCode());
+        result = prime * result + ((updateMilliSeconds == null) ? 0 : updateMilliSeconds.hashCode());
         result = prime * result + ((volume == null) ? 0 : volume.hashCode());
         return result;
     }
@@ -179,8 +158,6 @@ public class Order {
                 return false;
         } else if (!exchange.equals(other.exchange))
             return false;
-        if (fromCurrency != other.fromCurrency)
-            return false;
         if (id == null) {
             if (other.id != null)
                 return false;
@@ -191,9 +168,12 @@ public class Order {
                 return false;
         } else if (!price.equals(other.price))
             return false;
-        if (toCurrency != other.toCurrency)
-            return false;
         if (type != other.type)
+            return false;
+        if (updateMilliSeconds == null) {
+            if (other.updateMilliSeconds != null)
+                return false;
+        } else if (!updateMilliSeconds.equals(other.updateMilliSeconds))
             return false;
         if (volume == null) {
             if (other.volume != null)
@@ -202,6 +182,9 @@ public class Order {
             return false;
         return true;
     }
+
+
+
 
 
 

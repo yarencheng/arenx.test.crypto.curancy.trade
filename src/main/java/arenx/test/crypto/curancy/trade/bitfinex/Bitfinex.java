@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import arenx.test.crypto.curancy.trade.BaseWebSocketClient;
 import arenx.test.crypto.curancy.trade.Currency;
+import arenx.test.crypto.curancy.trade.OrderType;
 import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 
 @Component
@@ -159,7 +160,7 @@ public class Bitfinex extends BaseWebSocketClient{
         }
 
         OrderUpdateListener.Action action;
-        OrderUpdateListener.Type type;
+        OrderType type;
         double price = node.get(0).asDouble();
         int count = node.get(1).asInt();
         double volume = node.get(2).asDouble();
@@ -167,11 +168,11 @@ public class Bitfinex extends BaseWebSocketClient{
         if (0 == count) {
             if (1 == volume) {
                 action = OrderUpdateListener.Action.REMOVE;
-                type = reversSymbol ? OrderUpdateListener.Type.BID : OrderUpdateListener.Type.ASK;
+                type = reversSymbol ? OrderType.BID : OrderType.ASK;
                 volume = 0;
             } else if (-1 == volume) {
                 action = OrderUpdateListener.Action.REMOVE;
-                type = reversSymbol ? OrderUpdateListener.Type.ASK : OrderUpdateListener.Type.BID;
+                type = reversSymbol ? OrderType.ASK : OrderType.BID;
                 volume = 0;
             } else {
                 throw new RuntimeException("invalid data");
@@ -180,9 +181,9 @@ public class Bitfinex extends BaseWebSocketClient{
         } else if (0 < count) {
             action = OrderUpdateListener.Action.UPDATE;
             if (0 < volume) {
-                type = reversSymbol ? OrderUpdateListener.Type.BID : OrderUpdateListener.Type.ASK;
+                type = reversSymbol ? OrderType.BID : OrderType.ASK;
             } else if (0 > volume) {
-                type = reversSymbol ? OrderUpdateListener.Type.ASK : OrderUpdateListener.Type.BID;
+                type = reversSymbol ? OrderType.ASK : OrderType.BID;
                 volume = -volume;
             } else {
                 throw new RuntimeException("invalid data");
