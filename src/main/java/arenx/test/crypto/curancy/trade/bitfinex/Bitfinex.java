@@ -3,15 +3,11 @@ package arenx.test.crypto.curancy.trade.bitfinex;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.Optional;
 
 import javax.annotation.PostConstruct;
 
-import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,12 +19,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Sets;
 
 import arenx.test.crypto.curancy.trade.BaseWebSocketClient;
 import arenx.test.crypto.curancy.trade.Currency;
-import arenx.test.crypto.curancy.trade.Order;
-import arenx.test.crypto.curancy.trade.Order.OrderKey;
 import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 
 @Component
@@ -36,19 +29,28 @@ import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 @Lazy
 public class Bitfinex extends BaseWebSocketClient{
 
+    protected static class Symbol{
+        public Symbol(String symbol, Currency fromCurrency, Currency toCurrency) {
+            this.symbol = symbol;
+            this.fromCurrency = fromCurrency;
+            this.toCurrency = toCurrency;
+        }
+        public String symbol;
+        public Currency fromCurrency;
+        public Currency toCurrency;
+    }
+
     private static Logger logger = LoggerFactory.getLogger(Bitfinex.class);
 
     public static final String Bitfinex = "Bitfinex";
 
-    protected static final Set<Currency> tZECBTCs = Sets.immutableEnumSet(Currency.ZECASH, Currency.BITCOIN);
-    protected static final Set<Currency> tETHBTCs = Sets.immutableEnumSet(Currency.ETHEREUM, Currency.BITCOIN);
+    protected static final List<Symbol> symbols = Arrays.asList(
+            new Symbol("tZECBTC", Currency.ZECASH, Currency.BITCOIN),
+            new Symbol("tZECBTC", Currency.ETHEREUM, Currency.BITCOIN)
+            );
 
-    protected static final List<Currency> tZECBTCl = Collections.unmodifiableList(Arrays.asList(Currency.ZECASH, Currency.BITCOIN));
-    protected static final List<Currency> tETHBTCl = Collections.unmodifiableList(Arrays.asList(Currency.ETHEREUM, Currency.BITCOIN));
-
-    private OrderKey key = new OrderKey(); // reused object
-    private SortedMap<OrderKey, Order> orders = new TreeMap<>();
-    private SortedMap<Integer, String> subscribedBooks = Collections.synchronizedSortedMap(new TreeMap<>());
+    private boolean reversSymbol;
+    private int channelId = -1;
     private ObjectMapper mapper = new ObjectMapper();
     private ObjectNode subscribe = mapper.createObjectNode()
             .put("event", "subscribe")
@@ -61,7 +63,10 @@ public class Bitfinex extends BaseWebSocketClient{
     private List<OrderUpdateListener> orderUpdateListeners;
 
     @Autowired
-    private Set<Set<Currency>> monitoredCurrency;
+    private Currency fromCurrency;
+
+    @Autowired
+    private Currency toCurrency;
 
     @Override
     protected void onMessageReceive(String message) throws Exception {
@@ -100,19 +105,30 @@ public class Bitfinex extends BaseWebSocketClient{
     }
 
     @PostConstruct
-    private void start(){
-        monitoredCurrency.forEach(c->subscribeOrder(c));
-    }
+    private void start() throws BitfinexException{
+        Optional<String> from  = symbols.stream()
+                .filter(s->s.fromCurrency.equals(fromCurrency))
+                .filter(s->s.toCurrency.equals(toCurrency))
+                .map(s->s.symbol)
+                .findFirst();
 
-    protected void subscribeOrder(Set<Currency> currencies){
-        Validate.notNull(currencies);
-        Validate.isTrue(currencies.size() == 2);
+        Optional<String> to  = symbols.stream()
+                .filter(s->s.fromCurrency.equals(toCurrency))
+                .filter(s->s.toCurrency.equals(fromCurrency))
+                .map(s->s.symbol)
+                .findFirst();
 
-        String symbol = toSymbol(currencies);
-
-        logger.info("subscribe [{}]", symbol);
-
-        subscribe.put("symbol", symbol);
+        if (from.isPresent()) {
+            reversSymbol = false;
+            subscribe.put("symbol", from.get());
+            logger.info("subscribe [{}]; not reverse", from.get());
+        } else if (to.isPresent()) {
+            reversSymbol = true;
+            subscribe.put("symbol", to.get());
+            logger.info("subscribe [{}]; reverse", to.get());
+        } else {
+            throw new BitfinexException(String.format("can't fond symbol for [%s - %s]", fromCurrency, toCurrency));
+        }
 
         sendMessage(subscribe.toString());
     }
@@ -123,13 +139,11 @@ public class Bitfinex extends BaseWebSocketClient{
 
         switch (node.get(1).getNodeType()) {
         case ARRAY:
-            if (subscribedBooks.containsKey(id)) {
-                handleBookData(subscribedBooks.get(id), node.get(1));
-                return;
-            } else {
-                logger.error("TODO {}", node);
-                return;
+            if (id != channelId) {
+                throw new BitfinexException(String.format("unknown channel ID [{}]", id));
             }
+            handleBookData(node.get(1));
+            return;
         case STRING:
             break;
         default:
@@ -137,72 +151,53 @@ public class Bitfinex extends BaseWebSocketClient{
         }
     }
 
-    protected void handleBookData(String symbol, JsonNode node){
-        List<Currency> currencies = toCurrencies(symbol);
+    protected void handleBookData(JsonNode node){
 
         if (!node.get(0).isDouble()) {
-            node.forEach(child->handleBookData(symbol, child));
+            node.forEach(child->handleBookData(child));
             return;
         }
 
+        OrderUpdateListener.Action action;
+        OrderUpdateListener.Type type;
         double price = node.get(0).asDouble();
         int count = node.get(1).asInt();
-        double amount = node.get(2).asDouble();
-
-        Order order = null;
+        double volume = node.get(2).asDouble();
 
         if (0 == count) {
-            if (1 == amount) {
-                key.symbol = symbol;
-                key.type = Order.Type.BID;
-                key.price = price;
-            } else if (-1 == amount) {
-                key.symbol = symbol;
-                key.type = Order.Type.ASK;
-                key.price = price;
+            if (1 == volume) {
+                action = OrderUpdateListener.Action.REMOVE;
+                type = reversSymbol ? OrderUpdateListener.Type.BID : OrderUpdateListener.Type.ASK;
+                volume = 0;
+            } else if (-1 == volume) {
+                action = OrderUpdateListener.Action.REMOVE;
+                type = reversSymbol ? OrderUpdateListener.Type.ASK : OrderUpdateListener.Type.BID;
+                volume = 0;
             } else {
                 throw new RuntimeException("invalid data");
             }
-
-            order = orders.remove(key);
-            order.setVolume(0.0);
-            order.setUpdateNanoSeconds(System.nanoTime());
 
         } else if (0 < count) {
-            if (0 < amount) {
-                key.symbol = symbol;
-                key.type = Order.Type.BID;
-                key.price = price;
-            } else if (0 > amount) {
-                key.symbol = symbol;
-                key.type = Order.Type.ASK;
-                key.price = price;
+            action = OrderUpdateListener.Action.UPDATE;
+            if (0 < volume) {
+                type = reversSymbol ? OrderUpdateListener.Type.BID : OrderUpdateListener.Type.ASK;
+            } else if (0 > volume) {
+                type = reversSymbol ? OrderUpdateListener.Type.ASK : OrderUpdateListener.Type.BID;
+                volume = -volume;
             } else {
                 throw new RuntimeException("invalid data");
             }
-
-            order = orders.get(key);
-
-            if (null == order) {
-                order = new Order();
-                order.setExchange(Bitfinex);
-                order.setFromCurrency(currencies.get(0));
-                order.setToCurrency(currencies.get(1));
-                order.setPrice(price);
-                order.setType(key.type);
-                order.setVolume(0.0);
-                orders.put(key.copy(), order);
-            }
-
-            order.setVolume(order.getVolume() + Math.abs(amount));
-            order.setUpdateNanoSeconds(System.nanoTime());
 
         } else {
             throw new RuntimeException("invalid data");
         }
 
-        Order o = order;
-        orderUpdateListeners.forEach(l->l.OnUpdate(o));
+        price = reversSymbol ? (1/price) : price;
+        volume = reversSymbol ? (volume/price) : volume;
+
+        for (OrderUpdateListener updater: orderUpdateListeners) {
+            updater.update(Bitfinex, action, type, price, volume);
+        }
     }
 
     protected void handleEvent(JsonNode node) throws BitfinexException{
@@ -243,7 +238,7 @@ public class Bitfinex extends BaseWebSocketClient{
         }
     }
 
-    protected void handleSubscribed(String channel, int id, JsonNode node){
+    protected void handleSubscribed(String channel, int id, JsonNode node) throws BitfinexException{
         if ("book".equals(channel)) {
             handleSubscribedBook(id, node);
             return;
@@ -252,29 +247,12 @@ public class Bitfinex extends BaseWebSocketClient{
         }
     }
 
-    protected void handleSubscribedBook(int id, JsonNode node){
+    protected void handleSubscribedBook(int id, JsonNode node) throws BitfinexException{
+        if (channelId != -1) {
+            throw new BitfinexException(String.format("Receive second channel ID. Don't subscribe twice."));
+        }
         String symbol = node.get("symbol").asText();
-        logger.info("book {} is subscribed", symbol);
-        subscribedBooks.put(id, node.get("symbol").asText());
-    }
-
-    protected static String toSymbol(Set<Currency> currencies){
-        if (tZECBTCs.equals(currencies)) {
-            return "tZECBTC";
-        } else if (tETHBTCs.equals(currencies)) {
-            return "tETHBTC";
-        } else {
-            throw new IllegalArgumentException(String.format("unsupport pair of currency [%s]", currencies));
-        }
-    }
-
-    protected static List<Currency> toCurrencies(String symbol){
-        if ("tZECBTC".equals(symbol)) {
-            return tZECBTCl;
-        } else if ("tETHBTC".equals(symbol)) {
-            return tETHBTCl;
-        } else {
-            throw new IllegalArgumentException("unknown symbol [" + symbol + "]");
-        }
+        channelId = id;
+        logger.info("book [{} - {}] is subscribed", id, symbol);
     }
 }

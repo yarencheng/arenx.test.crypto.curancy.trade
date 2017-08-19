@@ -3,20 +3,13 @@ package arenx.test.crypto.curancy.trade.poloniex;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 import javax.annotation.PostConstruct;
 
-import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,12 +22,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Sets;
 
 import arenx.test.crypto.curancy.trade.BaseWebSocketClient;
 import arenx.test.crypto.curancy.trade.Currency;
-import arenx.test.crypto.curancy.trade.Order;
-import arenx.test.crypto.curancy.trade.Order.OrderKey;
 import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 
 @Component
@@ -42,19 +32,28 @@ import arenx.test.crypto.curancy.trade.OrderUpdateListener;
 @Lazy
 public class Poloniex extends BaseWebSocketClient{
 
+    protected static class Symbol{
+        public Symbol(String symbol, Currency fromCurrency, Currency toCurrency) {
+            this.symbol = symbol;
+            this.fromCurrency = fromCurrency;
+            this.toCurrency = toCurrency;
+        }
+        public String symbol;
+        public Currency fromCurrency;
+        public Currency toCurrency;
+    }
+
     private static Logger logger = LoggerFactory.getLogger(Poloniex.class);
 
     public static final String Poloniex = "Poloniex";
 
-    protected static final Set<Currency> BTC_ZECs = Sets.immutableEnumSet(Currency.ZECASH, Currency.BITCOIN);
-    protected static final Set<Currency> BTC_ETHs = Sets.immutableEnumSet(Currency.ETHEREUM, Currency.BITCOIN);
+    protected static final List<Symbol> symbols = Arrays.asList(
+            new Symbol("BTC_ZEC", Currency.ZECASH, Currency.BITCOIN),
+            new Symbol("BTC_ZEC", Currency.ETHEREUM, Currency.BITCOIN)
+            );
 
-    protected static final List<Currency> BTC_ZECl = Collections.unmodifiableList(Arrays.asList(Currency.ZECASH, Currency.BITCOIN));
-    protected static final List<Currency> BTC_ETHl = Collections.unmodifiableList(Arrays.asList(Currency.ETHEREUM, Currency.BITCOIN));
-
-    private OrderKey key = new OrderKey(); // reused object
-    private SortedMap<OrderKey, Order> orders = new TreeMap<>();
-    private Map<Integer, String> channelToSymbol = new HashMap<>();
+    private boolean reversSymbol;
+    private int channelId = -1;
     private ObjectMapper mapper = new ObjectMapper();
     private ObjectNode subscribe = mapper.createObjectNode()
             .put("command", "subscribe");
@@ -63,7 +62,10 @@ public class Poloniex extends BaseWebSocketClient{
     private List<OrderUpdateListener> orderUpdateListeners;
 
     @Autowired
-    private Set<Set<Currency>> monitoredCurrency;
+    private Currency fromCurrency;
+
+    @Autowired
+    private Currency toCurrency;
 
     @Override
     protected void onMessageReceive(String message) throws Exception {
@@ -107,42 +109,32 @@ public class Poloniex extends BaseWebSocketClient{
 
     @PostConstruct
     private void start() throws PoloniexException{
-        for (Set<Currency> c: monitoredCurrency) {
-            subscribeOrder(c);
+
+        Optional<String> from  = symbols.stream()
+                .filter(s->s.fromCurrency.equals(fromCurrency))
+                .filter(s->s.toCurrency.equals(toCurrency))
+                .map(s->s.symbol)
+                .findFirst();
+
+        Optional<String> to  = symbols.stream()
+                .filter(s->s.fromCurrency.equals(toCurrency))
+                .filter(s->s.toCurrency.equals(fromCurrency))
+                .map(s->s.symbol)
+                .findFirst();
+
+        if (from.isPresent()) {
+            reversSymbol = false;
+            subscribe.put("channel", from.get());
+            logger.info("subscribe [{}]; not reverse", from.get());
+        } else if (to.isPresent()) {
+            reversSymbol = true;
+            subscribe.put("channel", to.get());
+            logger.info("subscribe [{}]; reverse", to.get());
+        } else {
+            throw new PoloniexException(String.format("can't fond symbol for [%s - %s]", fromCurrency, toCurrency));
         }
-    }
-
-    protected void subscribeOrder(Set<Currency> currencies) throws PoloniexException{
-        Validate.notNull(currencies);
-        Validate.isTrue(currencies.size() == 2);
-
-        String symbol = toSymbol(currencies);
-
-        logger.info("subscribe [{}]", symbol);
-
-        subscribe.put("channel", symbol);
 
         sendMessage(subscribe.toString());
-    }
-
-    protected static String toSymbol(Set<Currency> currencies) throws PoloniexException{
-        if (BTC_ZECs.equals(currencies)) {
-            return "BTC_ZEC";
-        } else if (BTC_ETHs.equals(currencies)) {
-            return "BTC_ETH";
-        } else {
-            throw new PoloniexException(String.format("unsupport pair of currency [%s]", currencies));
-        }
-    }
-
-    protected static List<Currency> toCurrencies(String symbol) throws PoloniexException{
-        if ("BTC_ZEC".equals(symbol)) {
-            return BTC_ZECl;
-        } else if ("BTC_ETH".equals(symbol)) {
-            return BTC_ETHl;
-        } else {
-            throw new PoloniexException("unknown symbol [" + symbol + "]");
-        }
     }
 
     protected void handleChannel(int id, long serial, ArrayNode array) throws PoloniexException{
@@ -162,102 +154,66 @@ public class Poloniex extends BaseWebSocketClient{
 
     protected void handleTypeI(int id, JsonNode node) throws PoloniexException{
         JsonNode data = node.get(1);
-        String symbol = data.get("currencyPair").asText();
-        List<Currency> currencies = toCurrencies(symbol);
         ArrayNode orderBook = (ArrayNode) data.get("orderBook");
         ObjectNode bids = (ObjectNode) orderBook.get(0);
         ObjectNode asks = (ObjectNode) orderBook.get(1);
 
-        channelToSymbol.put(id, symbol);
-
-        // remove old orders
-        orders = orders.entrySet().stream()
-            .filter(e->!e.getKey().symbol.equals(symbol))
-            .collect(Collectors.toMap(
-                    e->e.getKey(),
-                    e->e.getValue(),
-                    (a,b)->{
-                        logger.error("dup key [{}] [{}]", a, b);
-                        return a;
-                    },
-                    TreeMap::new
-            ));
+        for (OrderUpdateListener updater: orderUpdateListeners) {
+            updater.removeAll(Poloniex);
+        }
 
         for (Iterator<Entry<String, JsonNode>> iterator = bids.fields(); iterator.hasNext();){
             Entry<String, JsonNode> e = iterator.next();
             double price = Double.parseDouble(e.getKey());
+            double volume = e.getValue().asDouble();
 
-            Order order = new Order();
-            order.setExchange(Poloniex);
-            order.setFromCurrency(currencies.get(0));
-            order.setToCurrency(currencies.get(1));
-            order.setPrice(price);
-            order.setType(Order.Type.BID);
-            order.setVolume(e.getValue().asDouble());
+            price = reversSymbol ? (1/price) : price;
+            volume = reversSymbol ? (volume/price) : volume;
+            OrderUpdateListener.Type type = reversSymbol ? OrderUpdateListener.Type.ASK : OrderUpdateListener.Type.BID;
 
-            Order.OrderKey key = new Order.OrderKey(symbol, Order.Type.BID, price);
-            orders.put(key, order);
-
-            order.setUpdateNanoSeconds(System.nanoTime());
-            orderUpdateListeners.forEach(u->u.OnUpdate(order));
+            for (OrderUpdateListener updater: orderUpdateListeners) {
+                updater.update(Poloniex, OrderUpdateListener.Action.UPDATE, type, price, volume);
+            }
         }
 
         for (Iterator<Entry<String, JsonNode>> iterator = asks.fields(); iterator.hasNext();){
             Entry<String, JsonNode> e = iterator.next();
             double price = Double.parseDouble(e.getKey());
+            double volume = e.getValue().asDouble();
 
-            Order order = new Order();
-            order.setExchange(Poloniex);
-            order.setFromCurrency(currencies.get(0));
-            order.setToCurrency(currencies.get(1));
-            order.setPrice(price);
-            order.setType(Order.Type.ASK);
-            order.setVolume(e.getValue().asDouble());
-            order.setUpdateNanoSeconds(System.nanoTime());
+            price = reversSymbol ? (1/price) : price;
+            volume = reversSymbol ? (volume/price) : volume;
+            OrderUpdateListener.Type type = reversSymbol ? OrderUpdateListener.Type.BID : OrderUpdateListener.Type.ASK;
 
-            Order.OrderKey key = new Order.OrderKey(symbol, Order.Type.ASK, price);
-            orders.put(key, order);
-
-            orderUpdateListeners.forEach(u->u.OnUpdate(order));
+            for (OrderUpdateListener updater: orderUpdateListeners) {
+                updater.update(Poloniex, OrderUpdateListener.Action.UPDATE, type, price, volume);
+            }
         }
     }
 
     protected void handleTypeO(int id, JsonNode node) throws PoloniexException{
-        String symbol = channelToSymbol.get(id);
         int type = node.get(1).asInt();
         double price = node.get(2).asDouble();
         double volume = node.get(3).asDouble();
 
-        key.symbol = symbol;
-        key.price = price;
-        key.type = 0 == type ? Order.Type.BID : Order.Type.ASK;
-
-        Order order = null;
+        OrderUpdateListener.Action action;
+        OrderUpdateListener.Type oType = 0 == type
+                ? reversSymbol ? OrderUpdateListener.Type.ASK : OrderUpdateListener.Type.BID
+                : reversSymbol ? OrderUpdateListener.Type.BID : OrderUpdateListener.Type.ASK;
 
         if (0.0 == volume) {
-            order = orders.remove(key);
+            action = OrderUpdateListener.Action.REMOVE;
         } else {
-            order = orders.get(key);
+            action = OrderUpdateListener.Action.REPLACE;
         }
 
-        if (null == order && 0.0 != volume) {
-            List<Currency> currencies = toCurrencies(symbol);
+        price = reversSymbol ? (1/price) : price;
+        volume = reversSymbol ? (volume/price) : volume;
 
-            order = new Order();
-            order.setExchange(Poloniex);
-            order.setFromCurrency(currencies.get(0));
-            order.setToCurrency(currencies.get(1));
-            order.setPrice(price);
-            order.setType(Order.Type.ASK);
-
-            orders.put(key.copy(), order);
+        for (OrderUpdateListener updater: orderUpdateListeners) {
+            updater.update(Poloniex, action, oType, price, volume);
         }
 
-        order.setUpdateNanoSeconds(System.nanoTime());
-        order.setVolume(volume);
-
-        Order o = order;
-        orderUpdateListeners.forEach(u->u.OnUpdate(o));
     }
 
     protected void handleTypeT(int id, JsonNode node){

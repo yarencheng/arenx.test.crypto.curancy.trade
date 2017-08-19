@@ -13,6 +13,7 @@
 			<property name="datanucleus.schema.autoCreateAll" value="true" />
 			<property name="datanucleus.schema.validateTables" value="true" />
 			<property name="datanucleus.schema.validateConstraints" value="true" />
+			<property name="datanucleus.cache.level1.type" value="none" />
 		</properties>
 	</persistence-unit>
 

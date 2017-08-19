@@ -1,10 +1,17 @@
 package arenx.test.crypto.curancy.trade;
 
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.jdo.JDOHelper;
+import javax.jdo.PersistenceManager;
+import javax.jdo.PersistenceManagerFactory;
+
+import org.datanucleus.PersistenceNucleusContext;
+import org.datanucleus.api.jdo.JDOPersistenceManagerFactory;
+import org.datanucleus.store.schema.SchemaAwareStoreManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -24,15 +31,15 @@ import ws.wamp.jawampa.transport.netty.NettyWampClientConnectorProvider;
 @PropertySource("classpath:trade.properties")
 public class Application {
 
-	@Bean(name = "monitoredCurrency")
-	public Set<Set<Currency>> get(){
-	    return new HashSet<>(
-	            Arrays.asList(
-//	                    Sets.newHashSet(Currency.BITCOIN, Currency.ETHEREUM)
-	                    Sets.newHashSet(Currency.BITCOIN, Currency.ZECASH)
-                )
-        );
+	@Bean("fromCurrency")
+	public Currency getFromCurrency(){
+	    return Currency.ZECASH;
 	}
+
+	@Bean("toCurrency")
+    public Currency getToCurrency(){
+        return Currency.BITCOIN;
+    }
 
 	@Bean(name = "webSocketClient")
 	@Scope("prototype")
@@ -52,5 +59,27 @@ public class Application {
             .withInfiniteReconnects()
             .withReconnectInterval(1, TimeUnit.SECONDS)
             .build();
+    }
+
+	@Bean
+    @Scope("singleton")
+    public PersistenceManagerFactory getPersistenceManagerFactory() throws Exception{
+	    JDOPersistenceManagerFactory pmf = (JDOPersistenceManagerFactory) JDOHelper.getPersistenceManagerFactory("h2_memory");
+
+	    PersistenceNucleusContext ctx = pmf.getNucleusContext();
+
+	    Set<String> classNames = Sets.newHashSet(Order.class.getName());
+
+	    Properties props = new Properties();
+
+	    ((SchemaAwareStoreManager)ctx.getStoreManager()).createSchemaForClasses(classNames, props);
+
+        return pmf;
+    }
+
+	@Bean
+    @Scope("prototype")
+    public PersistenceManager getPersistenceManager(@Autowired PersistenceManagerFactory pmf) throws Exception{
+        return pmf.getPersistenceManager();
     }
 }
