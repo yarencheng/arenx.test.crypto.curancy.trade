@@ -14,7 +14,9 @@ import org.datanucleus.store.schema.SchemaAwareStoreManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.Scope;
 import org.springframework.web.socket.client.WebSocketClient;
@@ -27,7 +29,7 @@ import ws.wamp.jawampa.WampClientBuilder;
 import ws.wamp.jawampa.transport.netty.NettyWampClientConnectorProvider;
 
 @Configuration
-@ComponentScan
+@ComponentScan(excludeFilters=@Filter(type = FilterType.REGEX, pattern = ".*Test"))
 @PropertySource("classpath:trade.properties")
 public class Application {
 
