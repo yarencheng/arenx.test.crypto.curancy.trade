@@ -28,6 +28,10 @@ public class PriceMonitor implements OrderChangeListener{
     private AtomicBoolean isChange = new AtomicBoolean(false);
 
 
+    private double profitThreshold = 0.000;
+    private double profit;
+    private long lasttime;
+
     private Runnable worker = ()->{
         while (isRun.get()) {
 
@@ -42,28 +46,101 @@ public class PriceMonitor implements OrderChangeListener{
 
             isChange.set(false);
 
-            {
-                Query ask= pm.newQuery(Order.class, "type == p1");
-                ask.declareParameters(OrderType.class.getName() + " p1");
-                ask.setResult("max(price)");
-                ask.setGrouping("exchange");
+            Query query = pm.newQuery(Order.class);
+            query.setResult("exchange");
+            query.setGrouping("exchange");
 
-                List<Object> asks = (List<Object>) ask.execute(OrderType.ASK);
+            List<String> exchanges = (List<String>) query.execute();
 
-                logger.info("asks {}", asks);
+            for (String exchange: exchanges) {
+                query = pm.newQuery(Order.class, "type == p1 && exchange == p2");
+                query.declareParameters(OrderType.class.getName() + " p1, " + String.class.getName() + " p2");
+                query.setOrdering("price DESC");
+
+                List<Order> asks = (List<Order>) query.execute(OrderType.ASK, exchange);
+
+                if (asks.isEmpty()) {
+                    continue;
+                }
+
+                Order ask = asks.get(0);
+
+                logger.info("ex={} ASK price={} volume={}", exchange, ask.getPrice(), ask.getVolume());
             }
 
-            {
-                Query bid= pm.newQuery(Order.class, "type == p1");
-                bid.declareParameters(OrderType.class.getName() + " p1");
-                bid.setResult("min(price)");
-                bid.setGrouping("exchange");
+            for (String exchange: exchanges) {
+                query = pm.newQuery(Order.class, "type == p1 && exchange == p2");
+                query.declareParameters(OrderType.class.getName() + " p1, " + String.class.getName() + " p2");
+                query.setOrdering("price ASC");
 
-                List<Object> bids = (List<Object>) bid.execute(OrderType.BID);
+                List<Order> bids = (List<Order>) query.execute(OrderType.BID, exchange);
 
-                logger.info("bids {}", bids);
+                if (bids.isEmpty()) {
+                    continue;
+                }
+
+                Order bid = bids.get(0);
+
+                logger.info("ex={} BID price={} volume={}", exchange, bid.getPrice(), bid.getVolume());
             }
 
+            for (String exchange: exchanges) {
+                query = pm.newQuery(Order.class, "type == p1 && exchange == p2");
+                query.declareParameters(OrderType.class.getName() + " p1, " + String.class.getName() + " p2");
+                query.setOrdering("price DESC");
+
+                List<Order> asks = (List<Order>) query.execute(OrderType.ASK, exchange);
+
+                if (asks.isEmpty()) {
+                    continue;
+                }
+
+                Order ask = asks.get(0);
+
+                query = pm.newQuery(Order.class, "type == p1 && price < p2 && exchange != p3 && updateMilliSeconds > p4");
+                query.declareParameters(OrderType.class.getName() + " p1, double p2, " + String.class.getName() + " p3, long p4");
+                query.setResult("sum(volume * (p2 - price)), max(updateMilliSeconds)");
+
+                Object[] r = (Object[]) query.executeWithArray(OrderType.BID, ask.getPrice() * (1.0-profitThreshold), exchange, lasttime);
+
+                if (null == r || r.length==0 || r[0] == null) {
+                    continue;
+                }
+
+                profit += (double)r[0];
+                lasttime = (long) r[1];
+            }
+
+            for (String exchange: exchanges) {
+                query = pm.newQuery(Order.class, "type == p1 && exchange == p2");
+                query.declareParameters(OrderType.class.getName() + " p1, " + String.class.getName() + " p2");
+                query.setOrdering("price DESC");
+
+                List<Order> asks = (List<Order>) query.execute(OrderType.BID, exchange);
+
+                if (asks.isEmpty()) {
+                    continue;
+                }
+
+                Order ask = asks.get(0);
+
+                query = pm.newQuery(Order.class, "type == p1 && price > p2 && exchange != p3 && updateMilliSeconds > p4");
+                query.declareParameters(OrderType.class.getName() + " p1, double p2, " + String.class.getName() + " p3, long p4");
+                query.setResult("sum(volume * (price - p2)), max(updateMilliSeconds)");
+
+                Object[] r = (Object[]) query.executeWithArray(OrderType.ASK, ask.getPrice() * (1.0+profitThreshold), exchange, lasttime);
+
+                if (null == r || r.length==0 || r[0] == null) {
+                    continue;
+                }
+
+                profit += (double)r[0];
+                lasttime = (long) r[1];
+            }
+
+            logger.info("profit = {}", profit);
+
+            logger.info("========================");
 
         }
     };

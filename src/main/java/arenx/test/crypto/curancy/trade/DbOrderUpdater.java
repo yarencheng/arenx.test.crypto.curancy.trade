@@ -144,11 +144,11 @@ public class DbOrderUpdater implements OrderUpdater{
                         order = orders.get(key);
 
                         if (null == order) {
-                            order = new Order(task.ex, task.type, 0.0, task.volume, 0l);
+                            order = new Order(task.ex, task.type, task.price, 0.0, 0l);
                             orders.put(key.copy(), order);
                         }
 
-                        order.setPrice(order.getPrice() + task.price);
+                        order.setVolume(order.getVolume() + task.volume);
                         order.setUpdateMilliSeconds(System.currentTimeMillis());
 
                         if (logger.isDebugEnabled()) {
