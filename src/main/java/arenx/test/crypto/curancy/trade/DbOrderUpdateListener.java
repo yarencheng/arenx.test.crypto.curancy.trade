@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 @Component
-@Scope("prototype")
+@Scope("singleton")
 public class DbOrderUpdateListener implements OrderUpdateListener{
 
     private enum TaskType{
@@ -73,10 +73,16 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
             if (null == todoTasks) {
                 try {
                     Thread.sleep(1);
+                    continue;
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
+
+//            Transaction tx = pm.currentTransaction();
+//            tx.begin();
+
+            logger.info("todoTasks [{}], orders [{}]", todoTasks.size(), orders.size());
 
             for (Task task: todoTasks) {
                 key.exchange = task.ex;
@@ -93,7 +99,7 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
                         .collect(Collectors.toMap(e->e.getKey(), e->e.getValue(), (a,b)->a, TreeMap::new))
                         ;
 
-                    long numDelete = (Long) pm.newQuery("DELETE FROM ORDER WHERE exchange = '" + task.ex + "'").execute();
+                    long numDelete = pm.newQuery(Order.class, "exchange == '" + task.ex + "'").deletePersistentAll();
                     logger.info("delete [{}] records from [{}]", numDelete, task.ex);
 
                     break;
@@ -103,15 +109,13 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
 
                         order = orders.remove(key);
 
-                        if (null != order) {
-                            pm.deletePersistent(order);
-                        }
-
                         if (logger.isDebugEnabled()) {
                             logger.debug("remove {}", order);
                         }
 
-                        logger.info("remove {}", order);
+                        if (null != order) {
+                            pm.deletePersistent(order);
+                        }
 
                         break;
                     case REPLACE:
@@ -126,13 +130,11 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
                         order.setPrice(task.price);
                         order.setUpdateMilliSeconds(System.currentTimeMillis());
 
-                        pm.makePersistent(order);
-
                         if (logger.isDebugEnabled()) {
                             logger.debug("replace {}", order);
                         }
 
-                        logger.info("replace {}", order);
+                        pm.makePersistent(order);
 
                         break;
                     case UPDATE:
@@ -147,13 +149,11 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
                         order.setPrice(order.getPrice() + task.price);
                         order.setUpdateMilliSeconds(System.currentTimeMillis());
 
-                        pm.makePersistent(order);
-
                         if (logger.isDebugEnabled()) {
                             logger.debug("update {}", order);
                         }
 
-                        logger.info("update {}", order);
+                        pm.makePersistent(order);
 
                         break;
                     default:
@@ -166,6 +166,8 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
 
                 }
             }
+
+//            tx.commit();
         }
     };
 
@@ -178,12 +180,6 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
         synchronized (tasksLock) {
             tasks.add(task);
         }
-
-
-        orders = orders.entrySet().stream()
-            .filter(e->!e.getKey().exchange.equals(""))
-            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue(), (a,b)->a, TreeMap::new))
-            ;
     }
 
     @Override
@@ -206,6 +202,7 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
     @PreDestroy
     private void stop() throws InterruptedException{
         logger.info("join db write thread");
+        isRun.set(false);
         workerThread.join();
 
         pm.close();

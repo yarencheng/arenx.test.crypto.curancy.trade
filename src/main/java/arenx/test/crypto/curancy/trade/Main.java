@@ -6,6 +6,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import arenx.test.crypto.curancy.trade.bitfinex.Bitfinex;
+import arenx.test.crypto.curancy.trade.poloniex.Poloniex;
 
 public class Main {
 
@@ -19,12 +20,12 @@ public class Main {
 
 		Bitfinex bit = context.getBean(Bitfinex.class);
 
-//		Poloniex polo = context.getBean(Poloniex.class);
+		Poloniex polo = context.getBean(Poloniex.class);
 
 
 		while (true) {
 			try {
-				Thread.sleep(100000);
+				Thread.sleep(100000000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
