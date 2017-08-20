@@ -8,7 +8,6 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -22,7 +21,7 @@ import arenx.test.crypto.curancy.trade.IntegrationTest;
 @Category(IntegrationTest.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Configuration
-@ComponentScan
+//@ComponentScan
 public class PoloniexIntegrationTest {
     private static Logger logger = LoggerFactory.getLogger(PoloniexIntegrationTest.class);
 
@@ -42,6 +41,8 @@ public class PoloniexIntegrationTest {
     @Test
     public void receive_2_book_message_in_10_seconds() throws InterruptedException{
 
+
+        Thread.sleep(1000);
 
     }
 }

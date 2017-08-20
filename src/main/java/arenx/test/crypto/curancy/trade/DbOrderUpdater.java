@@ -52,6 +52,9 @@ public class DbOrderUpdater implements OrderUpdater{
     @Autowired
     private PersistenceManager pm;
 
+    @Autowired
+    private List<OrderChangeListener> orderChangeListeners;
+
     private Object tasksLock = new Object();
     private List<Task> tasks = new ArrayList<>();
     private Order.OrderKey key = new Order.OrderKey(); // reuse
@@ -167,6 +170,10 @@ public class DbOrderUpdater implements OrderUpdater{
             }
 
             tx.commit();
+
+            for (OrderChangeListener l: orderChangeListeners) {
+                l.afterChange();
+            }
         }
     };
 

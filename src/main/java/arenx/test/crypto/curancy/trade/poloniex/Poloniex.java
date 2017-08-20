@@ -54,7 +54,6 @@ public class Poloniex extends BaseWebSocketClient{
             );
 
     private boolean reversSymbol;
-    private int channelId = -1;
     private ObjectMapper mapper = new ObjectMapper();
     private ObjectNode subscribe = mapper.createObjectNode()
             .put("command", "subscribe");
