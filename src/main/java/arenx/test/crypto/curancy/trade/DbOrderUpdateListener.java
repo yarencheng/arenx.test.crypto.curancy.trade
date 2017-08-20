@@ -83,8 +83,6 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
             Transaction tx = pm.currentTransaction();
             tx.begin();
 
-            logger.info("todoTasks [{}], orders [{}]", todoTasks.size(), orders.size());
-
             for (Task task: todoTasks) {
                 key.exchange = task.ex;
                 key.type = task.type;
@@ -174,8 +172,6 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
 
     @Override
     public void update(String ex, Action action, OrderType type, double price, double volume) {
-//        logger.info("{} {} {} {} {}", ex, action, type, price, volume);
-
         Task task = new Task(TaskType.SIMPLE, ex, action, type, price, volume);
 
         synchronized (tasksLock) {
@@ -197,6 +193,9 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
     @PostConstruct
     private void start() {
         workerThread = new Thread(worker, "db.writer");
+        workerThread.setUncaughtExceptionHandler((thread, e)->{
+            logger.error("some thing is wrong", e);
+        });
         workerThread.start();
     }
 
