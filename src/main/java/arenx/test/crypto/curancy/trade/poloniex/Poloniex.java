@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import arenx.test.crypto.curancy.trade.BaseWebSocketClient;
 import arenx.test.crypto.curancy.trade.Currency;
 import arenx.test.crypto.curancy.trade.OrderType;
-import arenx.test.crypto.curancy.trade.OrderUpdateListener;
+import arenx.test.crypto.curancy.trade.OrderUpdater;
 
 @Component
 @Scope("prototype")
@@ -60,7 +60,7 @@ public class Poloniex extends BaseWebSocketClient{
             .put("command", "subscribe");
 
     @Autowired
-    private List<OrderUpdateListener> orderUpdateListeners;
+    private List<OrderUpdater> orderUpdaters;
 
     @Autowired
     private Currency fromCurrency;
@@ -159,7 +159,7 @@ public class Poloniex extends BaseWebSocketClient{
         ObjectNode bids = (ObjectNode) orderBook.get(0);
         ObjectNode asks = (ObjectNode) orderBook.get(1);
 
-        for (OrderUpdateListener updater: orderUpdateListeners) {
+        for (OrderUpdater updater: orderUpdaters) {
             updater.removeAll(Poloniex);
         }
 
@@ -172,8 +172,8 @@ public class Poloniex extends BaseWebSocketClient{
             volume = reversSymbol ? (volume/price) : volume;
             OrderType type = reversSymbol ? OrderType.ASK : OrderType.BID;
 
-            for (OrderUpdateListener updater: orderUpdateListeners) {
-                updater.update(Poloniex, OrderUpdateListener.Action.UPDATE, type, price, volume);
+            for (OrderUpdater updater: orderUpdaters) {
+                updater.update(Poloniex, OrderUpdater.Action.UPDATE, type, price, volume);
             }
         }
 
@@ -186,8 +186,8 @@ public class Poloniex extends BaseWebSocketClient{
             volume = reversSymbol ? (volume/price) : volume;
             OrderType type = reversSymbol ? OrderType.BID : OrderType.ASK;
 
-            for (OrderUpdateListener updater: orderUpdateListeners) {
-                updater.update(Poloniex, OrderUpdateListener.Action.UPDATE, type, price, volume);
+            for (OrderUpdater updater: orderUpdaters) {
+                updater.update(Poloniex, OrderUpdater.Action.UPDATE, type, price, volume);
             }
         }
     }
@@ -197,21 +197,21 @@ public class Poloniex extends BaseWebSocketClient{
         double price = node.get(2).asDouble();
         double volume = node.get(3).asDouble();
 
-        OrderUpdateListener.Action action;
+        OrderUpdater.Action action;
         OrderType oType = 0 == type
                 ? reversSymbol ? OrderType.ASK : OrderType.BID
                 : reversSymbol ? OrderType.BID : OrderType.ASK;
 
         if (0.0 == volume) {
-            action = OrderUpdateListener.Action.REMOVE;
+            action = OrderUpdater.Action.REMOVE;
         } else {
-            action = OrderUpdateListener.Action.REPLACE;
+            action = OrderUpdater.Action.REPLACE;
         }
 
         price = reversSymbol ? (1/price) : price;
         volume = reversSymbol ? (volume/price) : volume;
 
-        for (OrderUpdateListener updater: orderUpdateListeners) {
+        for (OrderUpdater updater: orderUpdaters) {
             updater.update(Poloniex, action, oType, price, volume);
         }
 

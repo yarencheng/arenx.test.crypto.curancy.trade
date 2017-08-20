@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import arenx.test.crypto.curancy.trade.BaseWebSocketClient;
 import arenx.test.crypto.curancy.trade.Currency;
 import arenx.test.crypto.curancy.trade.OrderType;
-import arenx.test.crypto.curancy.trade.OrderUpdateListener;
+import arenx.test.crypto.curancy.trade.OrderUpdater;
 
 @Component
 @Scope("prototype")
@@ -61,7 +61,7 @@ public class Bitfinex extends BaseWebSocketClient{
             .put("length", 25);
 
     @Autowired
-    private List<OrderUpdateListener> orderUpdateListeners;
+    private List<OrderUpdater> orderUpdaters;
 
     @Autowired
     private Currency fromCurrency;
@@ -159,7 +159,7 @@ public class Bitfinex extends BaseWebSocketClient{
             return;
         }
 
-        OrderUpdateListener.Action action;
+        OrderUpdater.Action action;
         OrderType type;
         double price = node.get(0).asDouble();
         int count = node.get(1).asInt();
@@ -167,11 +167,11 @@ public class Bitfinex extends BaseWebSocketClient{
 
         if (0 == count) {
             if (1 == volume) {
-                action = OrderUpdateListener.Action.REMOVE;
+                action = OrderUpdater.Action.REMOVE;
                 type = reversSymbol ? OrderType.BID : OrderType.ASK;
                 volume = 0;
             } else if (-1 == volume) {
-                action = OrderUpdateListener.Action.REMOVE;
+                action = OrderUpdater.Action.REMOVE;
                 type = reversSymbol ? OrderType.ASK : OrderType.BID;
                 volume = 0;
             } else {
@@ -179,7 +179,7 @@ public class Bitfinex extends BaseWebSocketClient{
             }
 
         } else if (0 < count) {
-            action = OrderUpdateListener.Action.UPDATE;
+            action = OrderUpdater.Action.UPDATE;
             if (0 < volume) {
                 type = reversSymbol ? OrderType.BID : OrderType.ASK;
             } else if (0 > volume) {
@@ -196,7 +196,7 @@ public class Bitfinex extends BaseWebSocketClient{
         price = reversSymbol ? (1/price) : price;
         volume = reversSymbol ? (volume/price) : volume;
 
-        for (OrderUpdateListener updater: orderUpdateListeners) {
+        for (OrderUpdater updater: orderUpdaters) {
             updater.update(Bitfinex, action, type, price, volume);
         }
     }

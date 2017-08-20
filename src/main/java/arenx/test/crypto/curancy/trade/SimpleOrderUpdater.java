@@ -7,9 +7,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Scope("prototype")
-public class SimpleOrderUpdateListener implements OrderUpdateListener{
+public class SimpleOrderUpdater implements OrderUpdater{
 
-    private static Logger logger = LoggerFactory.getLogger(SimpleOrderUpdateListener.class);
+    private static Logger logger = LoggerFactory.getLogger(SimpleOrderUpdater.class);
 
     @Override
     public void update(String ex, Action action, OrderType type, double price, double volume) {

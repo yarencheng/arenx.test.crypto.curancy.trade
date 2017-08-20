@@ -1,6 +1,6 @@
 package arenx.test.crypto.curancy.trade;
 
-public interface OrderUpdateListener {
+public interface OrderUpdater {
     public enum Action{
         REPLACE, UPDATE, REMOVE
     }

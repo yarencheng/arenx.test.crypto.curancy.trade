@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Scope("singleton")
-public class DbOrderUpdateListener implements OrderUpdateListener{
+public class DbOrderUpdater implements OrderUpdater{
 
     private enum TaskType{
         SIMPLE, REMOVE_ALL
@@ -47,7 +47,7 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
         public double volume;
     }
 
-    private static Logger logger = LoggerFactory.getLogger(DbOrderUpdateListener.class);
+    private static Logger logger = LoggerFactory.getLogger(DbOrderUpdater.class);
 
     @Autowired
     private PersistenceManager pm;
