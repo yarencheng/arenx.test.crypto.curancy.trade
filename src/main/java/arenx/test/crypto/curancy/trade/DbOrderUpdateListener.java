@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.jdo.PersistenceManager;
+import javax.jdo.Transaction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,8 +80,8 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
                 }
             }
 
-//            Transaction tx = pm.currentTransaction();
-//            tx.begin();
+            Transaction tx = pm.currentTransaction();
+            tx.begin();
 
             logger.info("todoTasks [{}], orders [{}]", todoTasks.size(), orders.size());
 
@@ -167,7 +168,7 @@ public class DbOrderUpdateListener implements OrderUpdateListener{
                 }
             }
 
-//            tx.commit();
+            tx.commit();
         }
     };
 

@@ -5,7 +5,7 @@
 	
 	<persistence-unit name="h2_memory">
 		<properties>
-			<property name="datanucleus.ConnectionURL" value="jdbc:h2:mem:" />
+			<property name="datanucleus.ConnectionURL" value="jdbc:h2:mem:test;DB_CLOSE_DELAY=-1" />
 			<property name="datanucleus.ConnectionDriverName" value="org.h2.Driver" />
 			<property name="datanucleus.ConnectionUserName" value="" />
 			<property name="datanucleus.ConnectionPassword" value="" />
