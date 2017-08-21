@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-import arenx.test.crypto.curancy.trade.bitfinex.Bitfinex;
 import arenx.test.crypto.curancy.trade.poloniex.Poloniex;
 
 public class Main {
@@ -18,7 +17,7 @@ public class Main {
 //		polo.subscribeOrder(Sets.newHashSet(Currency.BITCOIN, Currency.ETHEREUM));
 //		polo.subscribeOrder(Sets.newHashSet(Currency.BITCOIN, Currency.ZECASH));
 
-		Bitfinex bit = context.getBean(Bitfinex.class);
+//		Bitfinex bit = context.getBean(Bitfinex.class);
 
 		Poloniex polo = context.getBean(Poloniex.class);
 
