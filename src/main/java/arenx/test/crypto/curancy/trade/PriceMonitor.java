@@ -63,7 +63,7 @@ logger.error("bbbb 1");
             List<Object[]> asks = (List<Object[]>) asksQuery.execute(lastTime);
             logger.error("bbbb 6");
             if (bids.isEmpty() || asks.isEmpty()) {
-                return;
+                continue;
             }
             logger.error("bbbb 7");
             long bidAllVolume = 0;

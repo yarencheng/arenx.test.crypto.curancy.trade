@@ -63,7 +63,7 @@ public class PriceMonitor_5p implements OrderChangeListener{
             List<Object[]> asks = (List<Object[]>) asksQuery.execute(lastTime);
 
             if (bids.isEmpty() || asks.isEmpty()) {
-                return;
+                continue;
             }
 
             long bidAllVolume = 0;
