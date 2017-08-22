@@ -8,9 +8,18 @@
 			</pattern>
 		</encoder>
 	</appender>
+	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
+		<file>log.log</file>
+		<append>true</append>
+		<encoder>
+			<pattern>%-5level %d{HH:mm:ss} [%thread] %logger.%method\(%line\) - %msg%n
+			</pattern>
+		</encoder>
+	</appender>
 
 	<root level="info">
 		<appender-ref ref="STDOUT" />
+		<appender-ref ref="FILE" />
 	</root>
 	
 	

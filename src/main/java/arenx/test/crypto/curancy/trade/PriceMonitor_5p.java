@@ -91,6 +91,7 @@ public class PriceMonitor_5p implements OrderChangeListener{
                 profit = askAllprofit;
             }
 
+            profit *= 0.995;
             allProfit += profit;
 
             logger.info("5% profit: {} / {}", profit, allProfit);

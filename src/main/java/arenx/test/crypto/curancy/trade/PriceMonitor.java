@@ -38,37 +38,37 @@ public class PriceMonitor implements OrderChangeListener{
                 }
                 continue;
             }
-logger.error("bbbb 1");
+
             Query maxAskQuery = pm.newQuery(Order.class, "type == " + OrderType.class.getName() + "." + OrderType.ASK + " && updateMilliSeconds > p1");
             maxAskQuery.setResult("max(price)");
-            logger.error("bbbb 2");
+
             Query bidsQuery = pm.newQuery(Order.class, "type == " + OrderType.class.getName() + "." + OrderType.BID + " && updateMilliSeconds > p1 && price < p2");
             bidsQuery.setResult("price, volume, updateMilliSeconds");
             bidsQuery.declareParameters("long p1");
             bidsQuery.declareVariables("double p2");
             bidsQuery.addSubquery(maxAskQuery, "double p2", null);
             bidsQuery.setOrdering("price ASC");
-            logger.error("bbbb 3");
+
             Query minBidQuery = pm.newQuery(Order.class, "type == " + OrderType.class.getName() + "." + OrderType.BID + " && updateMilliSeconds > p1");
             minBidQuery.setResult("min(price)");
-            logger.error("bbbb 4");
+
             Query asksQuery = pm.newQuery(Order.class, "type == " + OrderType.class.getName() + "." + OrderType.ASK + " && updateMilliSeconds > p1 && price > p2");
             asksQuery.setResult("price, volume, updateMilliSeconds");
             asksQuery.declareParameters("long p1");
             asksQuery.declareVariables("double p2");
             asksQuery.addSubquery(minBidQuery, "double p2", null);
             asksQuery.setOrdering("price DESC");
-            logger.error("bbbb 5");
+
             List<Object[]> bids = (List<Object[]>) bidsQuery.execute(lastTime);
             List<Object[]> asks = (List<Object[]>) asksQuery.execute(lastTime);
-            logger.error("bbbb 6");
+
             if (bids.isEmpty() || asks.isEmpty()) {
                 continue;
             }
-            logger.error("bbbb 7");
+
             long bidAllVolume = 0;
             double bidAllprofit = 0;
-            logger.error("bbbb 8");
+
             for (Object[] o: bids) {
                 bidAllVolume += (double)o[1];
                 bidAllprofit += (double)o[0] * (double)o[1];
