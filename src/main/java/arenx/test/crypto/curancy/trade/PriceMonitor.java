@@ -1,5 +1,9 @@
 package arenx.test.crypto.curancy.trade;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -24,7 +28,7 @@ public class PriceMonitor implements OrderChangeListener{
     private PersistenceManager pm;
 
     private long lastTime;
-    private double allProfit;
+    private BufferedWriter  writer;
 
     private AtomicBoolean isRun = new AtomicBoolean(true);
     private AtomicBoolean isChange = new AtomicBoolean(false);
@@ -43,7 +47,6 @@ public class PriceMonitor implements OrderChangeListener{
             maxAskQuery.setResult("max(price)");
 
             Query bidsQuery = pm.newQuery(Order.class, "type == " + OrderType.class.getName() + "." + OrderType.BID + " && updateMilliSeconds > p1 && price < p2");
-            bidsQuery.setResult("price, volume, updateMilliSeconds");
             bidsQuery.declareParameters("long p1");
             bidsQuery.declareVariables("double p2");
             bidsQuery.addSubquery(maxAskQuery, "double p2", null);
@@ -53,47 +56,36 @@ public class PriceMonitor implements OrderChangeListener{
             minBidQuery.setResult("min(price)");
 
             Query asksQuery = pm.newQuery(Order.class, "type == " + OrderType.class.getName() + "." + OrderType.ASK + " && updateMilliSeconds > p1 && price > p2");
-            asksQuery.setResult("price, volume, updateMilliSeconds");
             asksQuery.declareParameters("long p1");
             asksQuery.declareVariables("double p2");
             asksQuery.addSubquery(minBidQuery, "double p2", null);
             asksQuery.setOrdering("price DESC");
 
-            List<Object[]> bids = (List<Object[]>) bidsQuery.execute(lastTime);
-            List<Object[]> asks = (List<Object[]>) asksQuery.execute(lastTime);
+            List<Order> bids = (List<Order>) bidsQuery.execute(lastTime);
+            List<Order> asks = (List<Order>) asksQuery.execute(lastTime);
 
             if (bids.isEmpty() || asks.isEmpty()) {
                 continue;
             }
 
-            long bidAllVolume = 0;
-            double bidAllprofit = 0;
+            List<Order> all = new ArrayList<>(bids.size() + asks.size());
+            all.addAll(bids);
+            all.addAll(asks);
 
-            for (Object[] o: bids) {
-                bidAllVolume += (double)o[1];
-                bidAllprofit += (double)o[0] * (double)o[1];
-                lastTime = Math.max(lastTime, (long)o[2]);
+            lastTime = all.stream().mapToLong(o->o.getUpdateMilliSeconds()).max().getAsLong();
+
+            try {
+                for (Order o : all) {
+                    String line = lastTime + '\t' + o.getExchange() + '\t' + o.getType() + '\t' + o.getPrice() + '\t' + o.getVolume();
+                    writer.write(line);
+                    writer.newLine();
+                    logger.info(line);
+                }
+                writer.flush();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
 
-            long askAllVolume = 0;
-            double askAllprofit = 0;
-
-            for (Object[] o: asks) {
-                askAllVolume += (double)o[1];
-                askAllprofit += (double)o[0] * (double)o[1];
-                lastTime = Math.max(lastTime, (long)o[2]);
-            }
-
-            double profit;
-            if (bidAllVolume < askAllVolume) {
-                profit = bidAllprofit;
-            } else {
-                profit = askAllprofit;
-            }
-
-            allProfit += profit;
-
-            logger.info("0% profit: {} / {}", profit, allProfit);
         }
     };
     private Thread thread;
@@ -105,7 +97,10 @@ public class PriceMonitor implements OrderChangeListener{
     }
 
     @PostConstruct
-    private void start() {
+    private void start() throws IOException {
+
+        writer = new BufferedWriter(new FileWriter("profit.txt"));
+
         thread = new Thread(worker, "0%.monitor");
         thread.setUncaughtExceptionHandler((t,e)->{
             logger.error("error in thread [" + t.getName() + "]", e);
@@ -114,12 +109,15 @@ public class PriceMonitor implements OrderChangeListener{
     }
 
     @PreDestroy
-    private void stop() throws InterruptedException{
+    private void stop() throws InterruptedException, IOException{
         isRun.set(false);
 
         logger.info("join thread [{}]", thread.getName());
         thread.join();
 
         pm.close();
+
+        writer.flush();
+        writer.close();
     }
 }

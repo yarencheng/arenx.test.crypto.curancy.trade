@@ -11,11 +11,9 @@ import javax.jdo.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
 
-@Component
-@Scope("singleton")
+//@Component
+//@Scope("singleton")
 public class PriceMonitor_5p implements OrderChangeListener{
 
     private static Logger logger = LoggerFactory.getLogger(PriceMonitor_5p.class);

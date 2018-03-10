@@ -47,7 +47,7 @@ public class Bitfinex extends BaseWebSocketClient{
 
     protected static final List<Symbol> symbols = Arrays.asList(
             new Symbol("tZECBTC", Currency.ZECASH, Currency.BITCOIN),
-            new Symbol("tZECBTC", Currency.ETHEREUM, Currency.BITCOIN)
+            new Symbol("tETHBTC", Currency.ETHEREUM, Currency.BITCOIN)
             );
 
     private boolean reversSymbol;

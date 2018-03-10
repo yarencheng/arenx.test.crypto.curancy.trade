@@ -50,7 +50,7 @@ public class Poloniex extends BaseWebSocketClient{
 
     protected static final List<Symbol> symbols = Arrays.asList(
             new Symbol("BTC_ZEC", Currency.ZECASH, Currency.BITCOIN),
-            new Symbol("BTC_ZEC", Currency.ETHEREUM, Currency.BITCOIN)
+            new Symbol("BTC_ETH", Currency.ETHEREUM, Currency.BITCOIN)
             );
 
     private boolean reversSymbol;
